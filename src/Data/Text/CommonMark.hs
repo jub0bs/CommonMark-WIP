@@ -1,11 +1,20 @@
+{-# LANGUAGE NoMonomorphismRestriction #-}
+{-# LANGUAGE FlexibleContexts          #-}
+
 module CommonMark where
 
-import Control.Applicative ((<|>))
-import Data.Char (isSpace)
-import Text.Parser.Char
-import Text.Parser.Combinators
-import Text.Trifecta.Parser
--- import Data.Text.CommonMark.Types
+import Control.Applicative hiding ((<|>), optional, many)
+import Control.Monad              (forever)
+import Data.Maybe                 (catMaybes)
+import Text.Parsec
+import Text.Parsec.Char           (noneOf)
+
+-- Debugging
+parseFromFile p fname = do
+    input <- readFile fname
+    return $! (runParser p () fname input)
+
+parseToEOF p = parse (p <* eof) ""
 
 -- Types
 data Doc = Doc [Block]
@@ -29,34 +38,37 @@ data BulletType = Hyphen | PlusSign | Asterisk
 data NumDelim = FullStop | RightParen
   deriving (Show, Eq)
 
+-- additional combinators
+(<++>) = liftA2 (++)
+countOrMore n p = count n p <++> many p
+upToCount n p = takeWhileIsJust <$> count n (optionMaybe p)
 
--- Debugging
-parseToEOF p = parseTest $ p <* eof
-
-
--- Char
-
--- asciiPunctuationChar :: CharParsing m => m Char
--- asciiPunctuationChar = oneOf "!\"# $% &'()*+,-./:;<=>?@[\\]^_`{|}~"
-
-asciiSpace :: CharParsing m => m Char
-asciiSpace = char ' '
-
+takeWhileIsJust :: [Maybe a] -> [a]
+takeWhileIsJust (Just x : xs) = x : takeWhileIsJust xs
+takeWhileIsJust _             = []
+-- TODO: inline or not?
 
 -- Parser
-eol :: CharParsing m => m ()
-eol = (() <$ newline) <|> (carriageReturn *> skipOptional newline)
-  where
-    newline        = char '\n'
-    carriageReturn = char '\r'
+asciiSpace = char ' '
+
+line = many (noneOf "\n\r")
+
+cmarkSource = line `sepEndBy` eol
+
+eol =   try (string "\r\n")
+    <|> string "\r"
+    <|> string "\n"
+    <?> "end of line"
 
 
 -- Horizontal rule
-hRule :: CharParsing m => m Block
 hRule = Hrule
-    <$ threeOrFewer asciiSpace
+    <$ upToCount 3 asciiSpace
     <* (choice . map hRuleSequence) "*-_"
+    <?> "horizontal rule"
   where
-    threeOrFewer p  = count 3 (optional p)
-    threeOrMore  p  = count 3 p <* skipMany p
-    hRuleSequence c = threeOrMore (char c <* many asciiSpace)
+    hRuleSequence c = countOrMore 3 (char c <* many asciiSpace)
+
+
+-- ATX header
+
