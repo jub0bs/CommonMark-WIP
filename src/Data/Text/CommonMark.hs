@@ -1,7 +1,7 @@
 {-# LANGUAGE NoMonomorphismRestriction #-}
 {-# LANGUAGE FlexibleContexts          #-}
 
-module CommonMark where
+module Data.Text.CommonMark where
 
 import Control.Applicative hiding ((<|>), optional, many)
 import Control.Monad              (forever)
@@ -27,9 +27,8 @@ data Block
   deriving (Show)
 
 data ListType
-    = Bullet  {-# UNPACK #-} !BulletType
-    | Ordered {-# UNPACK #-} !NumDelim
-              {-# UNPACK #-} !Int
+    = Bullet  !BulletType
+    | Ordered !NumDelim {-# UNPACK #-} !Int
   deriving (Show, Eq)
 
 data BulletType = Hyphen | PlusSign | Asterisk
