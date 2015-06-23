@@ -1,5 +1,5 @@
 -- | Additional parsing combinators
-module Data.Text.CommonMark.Combinators
+module CommonMark.Combinators
     (
       (<++>)
     , countOrMore

@@ -15,7 +15,7 @@ Extra-source-files:  README.markdown
 Cabal-version:       >=1.10
 
 Library
-  Exposed-modules:     Data.Text.CommonMark
+  Exposed-modules:     CommonMark
   -- Other-modules:
   Other-extensions:    NoMonomorphismRestriction, FlexibleContexts
   Build-depends:       base >=4.8 && <4.9,

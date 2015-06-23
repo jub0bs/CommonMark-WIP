@@ -1,6 +1,4 @@
-{-# LANGUAGE OverloadedStrings #-}
-
-module Data.Text.CommonMark.Parser where
+module CommonMark.Parser where
 
 import Control.Applicative hiding ( (<|>), many )
 import Data.Text                  ( Text )
@@ -10,8 +8,8 @@ import Text.Parsec.Char (noneOf)
 import Text.Parsec.Text (Parser)
 
 
-import Data.Text.CommonMark.Types
-import Data.Text.CommonMark.Combinators
+import CommonMark.Types
+import CommonMark.Combinators
 
 asciiSpace :: Parser Char
 asciiSpace = char ' '
@@ -37,6 +35,3 @@ hRule = Hrule
     <?> "horizontal rule"
   where
     hRuleSequence c = countOrMore 3 (char c <* many asciiSpace)
-
-
--- ATX header

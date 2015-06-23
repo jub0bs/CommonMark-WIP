@@ -1,4 +1,4 @@
-module Data.Text.CommonMark.Types where
+module CommonMark.Types where
 
 -- Types
 data Doc = Doc [Block]

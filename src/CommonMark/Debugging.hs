@@ -1,7 +1,9 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Data.Text.CommonMark.Debugging
+module CommonMark.Debugging
     (
+      parseFromFile
+    , parseToEOF      -- for checking that the entire input has been parsed
     ) where
 
 import           Data.Text           ( Text)
