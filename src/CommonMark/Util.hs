@@ -10,12 +10,14 @@ module CommonMark.Util
     , replaceNullChars
     ) where
 
-import           Data.Char                                (ord)
-import           Data.Text                                (Text)
+import           Data.Char                                ( ord )
+import           Data.Text                                ( Text )
 import qualified Data.Text                     as Text
-import           Data.CharSet                             (CharSet)
+import           Data.CharSet                             ( CharSet )
 import qualified Data.CharSet                  as CharSet
-import qualified Data.CharSet.Unicode.Category as CharSet (punctuation)
+import qualified Data.CharSet.Unicode.Category as CharSet ( punctuation
+                                                          , space
+                                                          )
 
 
 -- A line ending is a newline (U+000A), carriage return (U+000D), or carriage
@@ -44,20 +46,7 @@ isUnicodeWhiteSpaceChar c = c `CharSet.member` unicodeWhiteSpaceCharSet
 -- The set of unicode whitespace characters.
 unicodeWhiteSpaceCharSet :: CharSet
 unicodeWhiteSpaceCharSet =
-    CharSet.fromList
-        [ '\x0020'
-        , '\x00A0'
-        , '\x1680'
-        , '\x202F'
-        , '\x205F'
-        , '\x3000'
-        , '\t' -- tab
-        , '\r' -- carriage return
-        , '\x000A' -- newline
-        , '\x000C' -- form feed
-        ]
-    `CharSet.union`
-    CharSet.range '\x2000' '\x200A'
+    CharSet.space `CharSet.union` CharSet.fromList "\t\r\n\f"
 
 -- A space is U+0020.
 isAsciiSpace :: Char -> Bool
