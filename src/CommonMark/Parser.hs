@@ -1,6 +1,6 @@
 module CommonMark.Parser where
 
-import Control.Applicative hiding ( (<|>), many )
+import Control.Applicative hiding ( (<|>), optional, many )
 import Data.Text                  ( Text )
 
 import Text.Parsec
@@ -14,11 +14,10 @@ import CommonMark.Combinators
 asciiSpace :: Parser Char
 asciiSpace = char ' '
 
--- line :: Parser [Char]
--- line = many (noneOf "\n\r")
+line :: Parser [Char]
+line = many (noneOf "\n\r")
 
-
---cmarkSource = line `sepEndBy` eol
+cmarkSource = line `sepEndBy` eol
 
 eol :: Parser String
 eol =   try (string "\r\n")
