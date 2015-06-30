@@ -1,5 +1,5 @@
 module CommonMark.Util
-    ( isLineEndingChar
+    ( isEndOfLineChar
     , isWhiteSpaceChar
     , isUnicodeWhiteSpaceChar
     , isAsciiSpace
@@ -19,12 +19,10 @@ import qualified Data.CharSet.Unicode.Category as CharSet ( punctuation
                                                           , space
                                                           )
 
-
 -- A line ending is a newline (U+000A), carriage return (U+000D), or carriage
 -- return + newline.
-isLineEndingChar :: Char -> Bool
-isLineEndingChar c =    c == '\n'
-                     || c == '\r'
+isEndOfLineChar :: Char -> Bool
+isEndOfLineChar c = c == '\n' || c == '\r'
 
 -- A whitespace character is a space (U+0020), tab (U+0009), newline (U+000A),
 -- line tabulation (U+000B), form feed (U+000C), or carriage return (U+000D).
@@ -75,7 +73,7 @@ isPunctuationChar c =
     || c `CharSet.member` CharSet.punctuation
 
 -- Convert tabs to spaces using a 4-space tab stop;
--- meant to be applied to individual lines.
+-- intended to operate on a single line of input.
 -- (adapted from Cheapstake.Util)
 detab :: Text -> Text
 detab = Text.concat . pad . Text.split (== '\t')

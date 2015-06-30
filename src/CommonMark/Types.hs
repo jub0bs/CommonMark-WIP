@@ -1,18 +1,20 @@
 module CommonMark.Types where
 
+import Data.Text ( Text )
+
 -- Types
 data Doc = Doc [Block]
   deriving (Show)
 
 data Block
     = Hrule
-    -- | Header {-# UNPACK #-} !Int Inlines
+    | Header {-# UNPACK #-} !Int !Text
     -- TODO
   deriving (Show)
 
 data ListType
-    = Bullet  !BulletType
-    | Ordered !NumDelim {-# UNPACK #-} !Int
+    = Bullet  BulletType
+    | Ordered NumDelim {-# UNPACK #-} !Int
   deriving (Show, Eq)
 
 data BulletType = Hyphen | PlusSign | Asterisk

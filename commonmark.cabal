@@ -18,10 +18,11 @@ Library
   Exposed-modules:     CommonMark
   -- Other-modules:
   Other-extensions:    NoMonomorphismRestriction, FlexibleContexts
-  Build-depends:       base >=4.8 && <4.9,
-                       text >=1.2.1.1,
+  Build-depends:       attoparsec >= 0.10.2,
+                       base >=4.8 && <4.9,
+                       charset >=0.3.7.1,
                        parsec >=3.0.0 && <3.2.0,
-                       charset >=0.3.7.1
+                       text >=1.2.1.1
   hs-source-dirs:      src
   default-language:    Haskell2010
   -- ghc-options:         -Wall -O2
