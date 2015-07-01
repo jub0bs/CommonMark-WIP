@@ -2,7 +2,7 @@ module CommonMark where
 
 import Prelude hiding ( lines )
 
-import Data.Attoparsec.Text -- temporary
+import Data.Attoparsec.Text ( parseTest, parseOnly )-- temporary
 
 import CommonMark.Types
 --import CommonMark.Parser

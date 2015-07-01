@@ -2,11 +2,11 @@
 
 module CommonMark.Attoparser
     ( endOfLine
-    , lines
+    , line
     , hRule
     , atxHeaderLevel
-    , closingHashSequence
-    , numberSigns1to6
+    , atxHeader
+    -- , dropAtxClosingSeq
     , setextHeader
     ) where
 
@@ -70,41 +70,55 @@ lines = line `sepBy` endOfLine
 
 -- Blocks
 
--- | Parse a horizontal rule.
+-- | Parse a horizontal rule. Intended to operate on a single line of input.
 hRule :: Parser Block
 hRule = Hrule
     <$  skipAsciiSpaces0to3
-    <*  (choice . map hRuleSequence) "*-_"
-    <*  endOfInput
+    <*  (choice . map hRuleSequence) hRuleChars
     <?> "horizontal rule"
   where
     hRuleSequence c = countOrMore 3 (char c <* skipAsciiSpaces)
+    hRuleChars      = "*-_"
 
 
 -- ATX headers
 
+isAtxHeaderChar :: Char -> Bool
+isAtxHeaderChar = (== '#')
+
 -- FIXME
 atxHeader :: Parser Block
-atxHeader = Header
-    <$> (skipAsciiSpaces0to3 *> atxHeaderLevel) <*> string "ju"
+atxHeader =
+    skipAsciiSpaces0to3 >>
+    atxHeaderLevel      >>= \lvl ->
+    peekChar            >>= \maybeChar ->
+    case maybeChar of
+        Nothing                   -> return $! Header lvl T.empty
+        Just c | isNonSpaceChar c -> failure
+        _                         ->
+            takeText >>= \t ->
+                case dropAtxClosingSeq t of
+                    Nothing -> return $! Header lvl (strip t)
+                    Just t' -> return $! Header lvl (strip t')
+  where
+    strip = T.dropAround isAsciiSpace
+
+-- | TODO
+-- 'Nothing' indicates a failure to drop an optional closing sequence.
+dropAtxClosingSeq :: Text -> Maybe Text
+dropAtxClosingSeq t =
+    case T.dropWhileEnd isAtxHeaderChar $
+         T.dropWhileEnd isAsciiSpace t of
+         t' | T.null t'                        -> Nothing
+            | (not . isAsciiSpace . T.last) t' -> Nothing
+            | otherwise                        -> Just $! T.init t'
+         
+            
+            
 
 atxHeaderLevel :: Parser Int
 atxHeaderLevel =
-       numberSigns1to6
-    -- <* NotFollowedByNonWhiteSpaceChar
-
-numberSigns1to6 :: Parser Int
-numberSigns1to6 =
-       char '#'
-    *> (T.length <$> takeWhileLoHi (== '#') 1 6)
-
--- The optional closing sequence of #s must be preceded by a space and may be
--- followed by spaces only.
-closingHashSequence :: Parser ()
-closingHashSequence =
-       char ' '
-    *> takeWhile1 (== '#') *> whitespace *> endOfInput
-
+    T.length <$> takeWhileLoHi isAtxHeaderChar 1 6
 
 --- setext headers --
 
