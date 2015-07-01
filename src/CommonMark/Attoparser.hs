@@ -3,7 +3,6 @@
 module CommonMark.Attoparser
     ( endOfLine
     , lines
-    , manyCount
     , hRule
     , atxHeaderLevel
     , closingHashSequence
@@ -11,11 +10,12 @@ module CommonMark.Attoparser
     , setextHeader
     ) where
 
-import Prelude hiding ( lines, takeWhile, length )
+import Prelude hiding ( lines, takeWhile )
 
 import Control.Applicative ( (<|>)
                            , (<$)
-                           , liftA2, many, Alternative, (<*>))
+                           , (<*>))
+import Control.Monad ( mzero )
 import Data.Text ( Text )
 import qualified Data.Text as T
 
@@ -23,70 +23,70 @@ import Data.Attoparsec.Text hiding ( endOfLine )
 
 import CommonMark.Util
 import CommonMark.Types
+import CommonMark.Combinators
+
+-- | @discard p@ applies action @p@ but discards its result.
+discard :: Parser a -> Parser ()
+discard p = () <$ p
+
 
 -- Whitespace / scanner
+
+-- | Parse an ASCII space character.
 asciiSpace :: Parser Char
 asciiSpace = satisfy isAsciiSpace
 
-asciiSpaces :: Parser ()
-asciiSpaces = () <$ takeWhile isAsciiSpace
+-- | Skip /zero/ or more ASCII space characters.
+skipAsciiSpaces :: Parser ()
+skipAsciiSpaces = discard $ takeWhile isAsciiSpace
 
-asciiSpaces1 :: Parser ()
-asciiSpaces1 = () <$ takeWhile1 isAsciiSpace
+-- | Skip /one/ or more ASCII space characters.
+skipAsciiSpaces1 :: Parser ()
+skipAsciiSpaces1 = discard $ takeWhile1 isAsciiSpace
 
-asciiSpaces0to3 :: Parser ()
-asciiSpaces0to3 = () <$ upToCountChars 3 isAsciiSpace
+-- | Skip between /zero/ and /three/ ASCII space characters.
+skipAsciiSpaces0to3 :: Parser ()
+skipAsciiSpaces0to3 = discard $ takeWhileHi isAsciiSpace 3
 
+-- | Skip /zero/ or more whitespace characters.
 whitespace :: Parser ()
-whitespace = () <$ takeWhile isWhiteSpaceChar
+whitespace = discard $ takeWhile isWhiteSpaceChar
 
--- TODO: move to Util.hs (misc helpers)
-(<++>) :: Applicative f => f [a] -> f [a] -> f [a]
-(<++>) = liftA2 (++)
-
-
--- TODO: move to Combinators.hs (parsers not specific to CommonMark)
-
--- adapted from Cheapskate.Combinators
-upToCountChars :: Int -> (Char -> Bool) -> Parser Text
-upToCountChars n f = scan 0 $ \n' c -> if n' < n && f c
-                                       then (Just $! n' + 1)
-                                       else Nothing
-
--- a generalization of many1 (arbitrary positive integer)
-manyCount :: Int -> Parser a -> Parser [a]
-manyCount n p = count n p <++> many p
-
+-- | Skip a CommonMark line ending.
 endOfLine :: Parser ()
 endOfLine =
-        (() <$ string "\r\n")
-    <|> (() <$ char '\r')
-    <|> (() <$ char '\n')
+        (discard $ string "\r\n")
+    <|> (discard $ char '\r')
+    <|> (discard $ char '\n')
 
-
--------------
-
+-- | TODO
 line :: Parser Text
 line = takeTill isEndOfLineChar
 
+-- |
 lines :: Parser [Text]
 lines = line `sepBy` endOfLine
 
 
+-- Blocks
+
+-- | Parse a horizontal rule.
 hRule :: Parser Block
 hRule = Hrule
-    <$  asciiSpaces0to3
+    <$  skipAsciiSpaces0to3
     <*  (choice . map hRuleSequence) "*-_"
     <*  endOfInput
     <?> "horizontal rule"
   where
-    hRuleSequence c = manyCount 3 (char c <* asciiSpaces)
+    hRuleSequence c = countOrMore 3 (char c <* skipAsciiSpaces)
 
+
+-- ATX headers
 
 -- FIXME
 atxHeader :: Parser Block
 atxHeader = Header
-    <$> (asciiSpaces0to3 *> atxHeaderLevel) <*> string "ju"
+    <$> (skipAsciiSpaces0to3 *> atxHeaderLevel) <*> string "ju"
 
 atxHeaderLevel :: Parser Int
 atxHeaderLevel =
@@ -96,7 +96,7 @@ atxHeaderLevel =
 numberSigns1to6 :: Parser Int
 numberSigns1to6 =
        char '#'
-    *> ((\t -> T.length t + 1) <$> upToCountChars 5 (== '#'))
+    *> (T.length <$> takeWhileLoHi (== '#') 1 6)
 
 -- The optional closing sequence of #s must be preceded by a space and may be
 -- followed by spaces only.
@@ -116,7 +116,7 @@ setextHeader = do
 
 setextHeaderFirstLine :: Parser Text
 setextHeaderFirstLine =
-        asciiSpaces0to3 
+        skipAsciiSpaces0to3
      *> line                  --- FIXME: must contain at least 1 nonspace char)
                               ---        must be indented by at most 3 chars
     <*  endOfLine
@@ -127,9 +127,9 @@ setextHeaderFirstLine =
 -- trailing spaces.
 setextHeaderUnderLine :: Parser Int
 setextHeaderUnderLine =
-        asciiSpaces0to3
+        skipAsciiSpaces0to3
      *> setextHeaderLevel
-    <*  asciiSpaces
+    <*  skipAsciiSpaces
     <*  endOfInput
     <?> "setext-header underline"
 
@@ -140,7 +140,6 @@ setextHeaderLevel :: Parser Int
 setextHeaderLevel =
         1 <$ takeWhile1 (== '=')
     <|> 2 <$ takeWhile1 (== '-')
-
 
 {-
 -- fenced code block

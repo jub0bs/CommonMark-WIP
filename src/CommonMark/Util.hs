@@ -1,5 +1,6 @@
 module CommonMark.Util
-    ( isEndOfLineChar
+    ( (<++>)
+    , isEndOfLineChar
     , isWhiteSpaceChar
     , isUnicodeWhiteSpaceChar
     , isAsciiSpace
@@ -10,6 +11,7 @@ module CommonMark.Util
     , replaceNullChars
     ) where
 
+import           Control.Applicative                      ( liftA2 )
 import           Data.Char                                ( ord )
 import           Data.Text                                ( Text )
 import qualified Data.Text                     as Text
@@ -18,6 +20,10 @@ import qualified Data.CharSet                  as CharSet
 import qualified Data.CharSet.Unicode.Category as CharSet ( punctuation
                                                           , space
                                                           )
+
+-- | "Lifted" version of @(++)@.
+(<++>) :: (Applicative f) => f [a] -> f [a] -> f [a]
+(<++>) = liftA2 (++)
 
 -- A line ending is a newline (U+000A), carriage return (U+000D), or carriage
 -- return + newline.
