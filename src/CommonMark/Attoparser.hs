@@ -34,19 +34,19 @@ discard p = () <$ p
 
 -- | Parse an ASCII space character.
 asciiSpace :: Parser Char
-asciiSpace = satisfy isAsciiSpace
+asciiSpace = satisfy isAsciiSpaceChar
 
 -- | Skip /zero/ or more ASCII space characters.
 skipAsciiSpaces :: Parser ()
-skipAsciiSpaces = discard $ takeWhile isAsciiSpace
+skipAsciiSpaces = discard $ takeWhile isAsciiSpaceChar
 
 -- | Skip /one/ or more ASCII space characters.
 skipAsciiSpaces1 :: Parser ()
-skipAsciiSpaces1 = discard $ takeWhile1 isAsciiSpace
+skipAsciiSpaces1 = discard $ takeWhile1 isAsciiSpaceChar
 
 -- | Skip between /zero/ and /three/ ASCII space characters.
 skipAsciiSpaces0to3 :: Parser ()
-skipAsciiSpaces0to3 = discard $ takeWhileHi isAsciiSpace 3
+skipAsciiSpaces0to3 = discard $ takeWhileHi isAsciiSpaceChar 3
 
 -- | Skip /zero/ or more whitespace characters.
 whitespace :: Parser ()
@@ -98,23 +98,18 @@ atxHeader =
         _                         ->
             takeText >>= \t ->
                 case dropAtxClosingSeq t of
-                    Nothing -> return $! Header lvl (strip t)
-                    Just t' -> return $! Header lvl (strip t')
-  where
-    strip = T.dropAround isAsciiSpace
+                    Nothing -> return $! Header lvl (stripAsciiSpaces t)
+                    Just t' -> return $! Header lvl (stripAsciiSpaces t')
 
 -- | TODO
 -- 'Nothing' indicates a failure to drop an optional closing sequence.
 dropAtxClosingSeq :: Text -> Maybe Text
 dropAtxClosingSeq t =
     case T.dropWhileEnd isAtxHeaderChar $
-         T.dropWhileEnd isAsciiSpace t of
-         t' | T.null t'                        -> Nothing
-            | (not . isAsciiSpace . T.last) t' -> Nothing
-            | otherwise                        -> Just $! T.init t'
-         
-            
-            
+         T.dropWhileEnd isAsciiSpaceChar t of
+         t' | T.null t'                            -> Nothing
+            | (not . isAsciiSpaceChar . T.last) t' -> Nothing
+            | otherwise                            -> Just $! T.init t'
 
 atxHeaderLevel :: Parser Int
 atxHeaderLevel =

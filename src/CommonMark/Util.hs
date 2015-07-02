@@ -3,10 +3,11 @@ module CommonMark.Util
     , isEndOfLineChar
     , isWhiteSpaceChar
     , isUnicodeWhiteSpaceChar
-    , isAsciiSpace
+    , isAsciiSpaceChar
     , isNonSpaceChar
     , isAsciiPunctuationChar
     , isPunctuationChar
+    , stripAsciiSpaces
     , detab
     , replaceNullChars
     ) where
@@ -14,7 +15,7 @@ module CommonMark.Util
 import           Control.Applicative                      ( liftA2 )
 import           Data.Char                                ( ord )
 import           Data.Text                                ( Text )
-import qualified Data.Text                     as Text
+import qualified Data.Text                     as T
 import           Data.CharSet                             ( CharSet )
 import qualified Data.CharSet                  as CharSet
 import qualified Data.CharSet.Unicode.Category as CharSet ( punctuation
@@ -53,8 +54,8 @@ unicodeWhiteSpaceCharSet =
     CharSet.space `CharSet.union` CharSet.fromList "\t\r\n\f"
 
 -- A space is U+0020.
-isAsciiSpace :: Char -> Bool
-isAsciiSpace c = c == ' '
+isAsciiSpaceChar :: Char -> Bool
+isAsciiSpaceChar c = c == ' '
 
 -- A non-space character is any character that is not a whitespace character.
 isNonSpaceChar :: Char -> Bool
@@ -78,11 +79,16 @@ isPunctuationChar c =
        c `CharSet.member` CharSet.fromList "$+<=>^`|~"
     || c `CharSet.member` CharSet.punctuation
 
+
+-- | Remove leading and trailing ASCII spaces from a string.
+stripAsciiSpaces :: Text -> Text
+stripAsciiSpaces = T.dropAround isAsciiSpaceChar
+
 -- Convert tabs to spaces using a 4-space tab stop;
 -- intended to operate on a single line of input.
 -- (adapted from Cheapstake.Util)
 detab :: Text -> Text
-detab = Text.concat . pad . Text.split (== '\t')
+detab = T.concat . pad . T.split (== '\t')
   where
     -- pad :: [Text] -> [Text]
     pad []       = []
@@ -90,14 +96,14 @@ detab = Text.concat . pad . Text.split (== '\t')
     pad (t : ts) =
         let
           tabw = 4  -- tabstop
-          tl   = Text.length t
+          tl   = T.length t
           n    = tl - (tl `rem` tabw) + tabw  {- smallest multiple of
                                                  tabw greater than tl -}
-        in Text.justifyLeft n ' ' t : pad ts
+        in T.justifyLeft n ' ' t : pad ts
 
 -- Replace null characters (U+0000) with the replacement character (U+FFFD).
 replaceNullChars :: Text -> Text
-replaceNullChars = Text.map replaceNUL
+replaceNullChars = T.map replaceNUL
   where
     replaceNUL c
         |  c == '\NUL' = '\xFFFD'
