@@ -1,7 +1,8 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module CommonMark.Parser
-    ( endOfLine
+    ( commonmark
+    , endOfLine
     , line
     , hRule
     , atxHeaderLevel
@@ -27,6 +28,24 @@ import Data.Attoparsec.Text hiding ( endOfLine )
 import CommonMark.Util
 import CommonMark.Types
 import CommonMark.Combinators
+
+commonmark :: Text -> [Text] -- FIXME
+commonmark = processLines
+
+
+-- | Types for intermediate representation
+
+data Leaf = TextLine !Text
+          | BlanLine !Text
+          | ATXHeader !Int !Text
+          | SetextHeader !Int !Text
+          | Rule
+          deriving (Show)
+
+-- temporary
+processLines :: Text -> [Text]
+processLines t = ts
+  where Right ts = parseOnly lines t -- (lines never fails)
 
 
 -- | @discard p@ applies action @p@ but discards its result.
@@ -79,11 +98,11 @@ lines :: Parser [Text]
 lines = line `sepBy` endOfLine
 
 
--- Blocks
+-- Leaf parsers
 
 -- | Parse a horizontal rule. Intended to operate on a single line of input.
-hRule :: Parser Block
-hRule = Hrule
+hRule :: Parser Leaf
+hRule = Rule
     <$  skipNonIndentSpace
     <*  (choice . map hRuleSequence) hRuleChars
     <*  endOfInput
@@ -95,21 +114,18 @@ hRule = Hrule
 
 -- ATX headers
 
-isAtxHeaderChar :: Char -> Bool
-isAtxHeaderChar = (== '#')
-
 -- | Parse an ATX header. Intended to operate on a single line of input.
-atxHeader :: Parser Block
+atxHeader :: Parser Leaf
 atxHeader = do
     skipNonIndentSpace
     lvl       <- atxHeaderLevel
     maybeChar <- peekChar
     case maybeChar of
-        Nothing                   -> return $! Header lvl T.empty
+        Nothing                   -> return $! ATXHeader lvl T.empty
         Just c | isNonSpaceChar c -> failure
         _                         -> do
             t <- stripAsciiSpaces . removeATXSuffix <$> takeText
-            return $! Header lvl t
+            return $! ATXHeader lvl t
 
 -- | Parse the opening sequence of #s of an ATX header and return the header
 -- level.
@@ -117,16 +133,20 @@ atxHeaderLevel :: Parser Int
 atxHeaderLevel =
     T.length <$> takeWhileLoHi isAtxHeaderChar 1 6
 
+
 -- | Remove an optional ATX-header suffix from a 'Text' value.
+-- TODO: move to Util?
 removeATXSuffix :: Text -> Text
 removeATXSuffix t =
-    let t' = T.dropWhileEnd isAtxHeaderChar  .
-             T.dropWhileEnd isAsciiSpaceChar $ t
-    in
-        if T.null t' || (not . isAsciiSpaceChar . T.last) t'
+    if T.null t' || (not . isAsciiSpaceChar . T.last) t'
         then t
         else T.init t'
+  where
+    t' = T.dropWhileEnd isAtxHeaderChar  .
+         T.dropWhileEnd isAsciiSpaceChar $ t
 
+isAtxHeaderChar :: Char -> Bool
+isAtxHeaderChar c = c == '#'
 
 --- setext headers (see section 4.3 of the CommonMark specs)
 
@@ -134,7 +154,7 @@ removeATXSuffix t =
 -- to operate on a single line of input.
 setextHeaderUnderLine :: Parser Int
 setextHeaderUnderLine =
-        skipAsciiSpaces0to3
+        skipNonIndentSpace
      *> setextHeaderLevel
     <*  skipAsciiSpaces
     <*  endOfInput
@@ -189,7 +209,7 @@ openingCodeFence = do
 --              number of chars in code fence
 closingCodeFence :: FenceType -> Int -> Parser ()
 closingCodeFence fencetype n = do
-    skipAsciiSpaces0to3
+    skipNonIndentSpace
     (fencetype', n') <- codeFence
     if fencetype' /= fencetype || n' < n
     then failure
