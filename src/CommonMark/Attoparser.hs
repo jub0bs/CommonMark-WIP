@@ -6,8 +6,11 @@ module CommonMark.Attoparser
     , hRule
     , atxHeaderLevel
     , atxHeader
-    -- , dropAtxClosingSeq
-    , setextHeader
+    , removeATXSuffix
+    , setextHeaderUnderLine
+    , openingCodeFence
+    , closingCodeFence
+    , infoString
     ) where
 
 import Prelude hiding ( lines, takeWhile )
@@ -25,13 +28,14 @@ import CommonMark.Util
 import CommonMark.Types
 import CommonMark.Combinators
 
+
 -- | @discard p@ applies action @p@ but discards its result.
 discard :: Parser a -> Parser ()
 discard p = () <$ p
 
 
 -- Whitespace / scanner
-
+--
 -- | Parse an ASCII space character.
 asciiSpace :: Parser Char
 asciiSpace = satisfy isAsciiSpaceChar
@@ -44,9 +48,16 @@ skipAsciiSpaces = discard $ takeWhile isAsciiSpaceChar
 skipAsciiSpaces1 :: Parser ()
 skipAsciiSpaces1 = discard $ takeWhile1 isAsciiSpaceChar
 
+asciiSpaces0to3 :: Parser Int
+asciiSpaces0to3 = T.length <$> takeWhileHi isAsciiSpaceChar 3
+
+
 -- | Skip between /zero/ and /three/ ASCII space characters.
 skipAsciiSpaces0to3 :: Parser ()
-skipAsciiSpaces0to3 = discard $ takeWhileHi isAsciiSpaceChar 3
+skipAsciiSpaces0to3 = discard $ asciiSpaces0to3
+
+skipNonIndentSpace :: Parser ()
+skipNonIndentSpace = skipAsciiSpaces0to3
 
 -- | Skip /zero/ or more whitespace characters.
 whitespace :: Parser ()
@@ -73,8 +84,9 @@ lines = line `sepBy` endOfLine
 -- | Parse a horizontal rule. Intended to operate on a single line of input.
 hRule :: Parser Block
 hRule = Hrule
-    <$  skipAsciiSpaces0to3
+    <$  skipNonIndentSpace
     <*  (choice . map hRuleSequence) hRuleChars
+    <*  endOfInput
     <?> "horizontal rule"
   where
     hRuleSequence c = countOrMore 3 (char c <* skipAsciiSpaces)
@@ -86,54 +98,40 @@ hRule = Hrule
 isAtxHeaderChar :: Char -> Bool
 isAtxHeaderChar = (== '#')
 
--- FIXME
+-- | Parse an ATX header. Intended to operate on a single line of input.
 atxHeader :: Parser Block
-atxHeader =
-    skipAsciiSpaces0to3 >>
-    atxHeaderLevel      >>= \lvl ->
-    peekChar            >>= \maybeChar ->
+atxHeader = do
+    skipNonIndentSpace
+    lvl       <- atxHeaderLevel
+    maybeChar <- peekChar
     case maybeChar of
         Nothing                   -> return $! Header lvl T.empty
         Just c | isNonSpaceChar c -> failure
-        _                         ->
-            takeText >>= \t ->
-                case dropAtxClosingSeq t of
-                    Nothing -> return $! Header lvl (stripAsciiSpaces t)
-                    Just t' -> return $! Header lvl (stripAsciiSpaces t')
+        _                         -> do
+            t <- stripAsciiSpaces . removeATXSuffix <$> takeText
+            return $! Header lvl t
 
--- | TODO
--- 'Nothing' indicates a failure to drop an optional closing sequence.
-dropAtxClosingSeq :: Text -> Maybe Text
-dropAtxClosingSeq t =
-    case T.dropWhileEnd isAtxHeaderChar $
-         T.dropWhileEnd isAsciiSpaceChar t of
-         t' | T.null t'                            -> Nothing
-            | (not . isAsciiSpaceChar . T.last) t' -> Nothing
-            | otherwise                            -> Just $! T.init t'
-
+-- | Parse the opening sequence of #s of an ATX header and return the header
+-- level.
 atxHeaderLevel :: Parser Int
 atxHeaderLevel =
     T.length <$> takeWhileLoHi isAtxHeaderChar 1 6
 
---- setext headers --
-
-setextHeader :: Parser Block
-setextHeader = do
-    t   <- setextHeaderFirstLine
-    lvl <- setextHeaderUnderLine
-    return $! Header lvl t
-
-setextHeaderFirstLine :: Parser Text
-setextHeaderFirstLine =
-        skipAsciiSpaces0to3
-     *> line                  --- FIXME: must contain at least 1 nonspace char)
-                              ---        must be indented by at most 3 chars
-    <*  endOfLine
+-- | Remove an optional ATX-header suffix from a 'Text' value.
+removeATXSuffix :: Text -> Text
+removeATXSuffix t =
+    let t' = T.dropWhileEnd isAtxHeaderChar  .
+             T.dropWhileEnd isAsciiSpaceChar $ t
+    in
+        if T.null t' || (not . isAsciiSpaceChar . T.last) t'
+        then t
+        else T.init t'
 
 
--- A setext header underline is a sequence of = characters or a sequence of -
--- characters, with no more than 3 spaces indentation and any number of
--- trailing spaces.
+--- setext headers (see section 4.3 of the CommonMark specs)
+
+-- | Parse a setext-header underline and return the header level. Intended
+-- to operate on a single line of input.
 setextHeaderUnderLine :: Parser Int
 setextHeaderUnderLine =
         skipAsciiSpaces0to3
@@ -142,22 +140,68 @@ setextHeaderUnderLine =
     <*  endOfInput
     <?> "setext-header underline"
 
-
--- The header is a level 1 header if = characters are used in the setext
--- header underline, and a level 2 header if - characters are used.
+-- | Parse the sequence of = or - characters of a setext-header underline
+-- and return the header level.
 setextHeaderLevel :: Parser Int
 setextHeaderLevel =
         1 <$ takeWhile1 (== '=')
     <|> 2 <$ takeWhile1 (== '-')
 
-{-
--- fenced code block
-codeFenceSequence :: Parser ()
-        atLeastCountChars 3 '`'
-    <|> atLeastCountChars 3 '~'
-  where
-    atLeastCountChars n c = () $> count n (char c) *> takeWhile (== c)
 
-openingCodeFence :: Parser (Maybe InfoString)
-openingCodeFence =
--}
+-- Fenced code blocks
+
+data FenceType = FenceType Char
+    deriving (Show, Eq)
+
+-- | Parse a code-fence sequence (three or more backticks, or three of more
+-- tildes)
+codeFence :: Parser (FenceType, Int)
+codeFence = go '`' <|> go '~'
+  where
+    go c = do
+        n <- T.length <$> takeWhileLo (== c) 3
+        return (FenceType c, n)
+
+-- | Parse the info string of a code fence.
+-- Intended to operate on a single line of input.
+infoString :: Parser Text
+infoString =
+        stripAsciiSpaces
+    <$> takeWhile (not . isBacktick)
+    <*  endOfInput
+
+-- | Parse an opening code fence and return TODO
+-- Intended to operate on a single line of input.
+-- TODO: return indentation
+--              FenceType
+--              number of chars in code fence
+--              infostring
+openingCodeFence :: Parser Text
+openingCodeFence = do
+    lvl <- asciiSpaces0to3
+    (fencetype, n) <- codeFence
+    t <- infoString
+    return t
+
+-- | Parse an closing code fence and return TODO
+-- Intended to operate on a single line of input.
+-- TODO: return FenceType
+--              number of chars in code fence
+closingCodeFence :: FenceType -> Int -> Parser ()
+closingCodeFence fencetype n = do
+    skipAsciiSpaces0to3
+    (fencetype', n') <- codeFence
+    if fencetype' /= fencetype || n' < n
+    then failure
+    else do
+        skipAsciiSpaces
+        endOfInput
+        return ()
+
+
+--- inlines
+
+hardLineBreak :: Parser ()
+hardLineBreak = ()
+    <$ char '\\'
+    <* endOfInput

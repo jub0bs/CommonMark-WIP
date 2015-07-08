@@ -5,6 +5,8 @@ module CommonMark.Util
     , isUnicodeWhiteSpaceChar
     , isAsciiSpaceChar
     , isNonSpaceChar
+    , isTab
+    , isBacktick
     , isAsciiPunctuationChar
     , isPunctuationChar
     , stripAsciiSpaces
@@ -56,6 +58,12 @@ unicodeWhiteSpaceCharSet =
 -- A space is U+0020.
 isAsciiSpaceChar :: Char -> Bool
 isAsciiSpaceChar c = c == ' '
+
+isTab :: Char -> Bool
+isTab = (== '\t')
+
+isBacktick :: Char -> Bool
+isBacktick = (== '`')
 
 -- A non-space character is any character that is not a whitespace character.
 isNonSpaceChar :: Char -> Bool
