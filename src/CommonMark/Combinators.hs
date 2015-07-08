@@ -1,6 +1,8 @@
 -- | Additional parsing combinators
 module CommonMark.Combinators
     ( failure
+    , success
+    , notFollowedBy
     , countOrMore
     -- , countOrFewer
     , takeWhileLo
@@ -21,9 +23,22 @@ import Data.Attoparsec.Text
 (<++>) :: (Applicative f) => f [a] -> f [a] -> f [a]
 (<++>) = liftA2 (++)
 
--- | @failure@ is a scanner that always fails.
+-- | @failure@ is a parser that always fails.
 failure :: Parser a
 failure = mempty
+
+-- | @success@ is a parser that always succeeds.
+success :: Parser ()
+success = return ()
+
+-- | @notFollowedBy p@ TODO
+notFollowedBy :: (Char -> Bool) -> Parser ()
+notFollowedBy p = do
+    maybeChar <- peekChar
+    case maybeChar of
+        Nothing -> success
+        Just c | p c       -> failure
+               | otherwise -> success
 
 -- | @countOrMore n p@ applies action @p@ repeatedly, @n@ or more times,
 -- and returns a list of the results.
@@ -52,7 +67,8 @@ takeWhileLo f lo =
     takeWhile f >>= \t ->
     case T.compareLength t lo of
         LT -> failure
-        _  -> return t
+        EQ -> return t
+        GT -> return t
 
 -- | @takeWhileHi f hi@ consumes up to @hi@ characters as long as
 -- predicate @f@ returns 'True', and returns the consumed input.

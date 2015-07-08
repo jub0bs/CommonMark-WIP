@@ -9,7 +9,9 @@ module CommonMark.Util
     , isBacktick
     , isAsciiPunctuationChar
     , isPunctuationChar
+    , isATXHeaderChar
     , stripAsciiSpaces
+    , stripATXSuffix
     , detab
     , replaceNullChars
     ) where
@@ -87,10 +89,25 @@ isPunctuationChar c =
        c `CharSet.member` CharSet.fromList "$+<=>^`|~"
     || c `CharSet.member` CharSet.punctuation
 
+-- | TODO
+isATXHeaderChar :: Char -> Bool
+isATXHeaderChar c = c == '#'
 
 -- | Remove leading and trailing ASCII spaces from a string.
 stripAsciiSpaces :: Text -> Text
 stripAsciiSpaces = T.dropAround isAsciiSpaceChar
+
+
+-- | @stripATXSuffix t@ strips an ATX-header suffix (if any) from @t@.
+stripATXSuffix :: Text -> Text
+stripATXSuffix t
+    | T.null t'                            = t
+    | not . isAsciiSpaceChar . T.last $ t' = t
+    | otherwise                            = T.init t'
+  where
+    t' = T.dropWhileEnd isATXHeaderChar  .
+         T.dropWhileEnd isAsciiSpaceChar $ t
+
 
 -- Convert tabs to spaces using a 4-space tab stop;
 -- intended to operate on a single line of input.
@@ -99,9 +116,9 @@ detab :: Text -> Text
 detab = T.concat . pad . T.split (== '\t')
   where
     -- pad :: [Text] -> [Text]
-    pad []       = []
-    pad [t]      = [t]
-    pad (t : ts) =
+    pad []               = []
+    pad [t]              = [t]
+    pad (t : ts@(_ : _)) =
         let
           tabw = 4  -- tabstop
           tl   = T.length t
