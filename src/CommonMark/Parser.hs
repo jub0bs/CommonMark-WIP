@@ -116,16 +116,21 @@ hRule = Rule
 
 -- | Parse an ATX header. Intended to operate on a single line of input.
 atxHeader :: Parser Leaf
-atxHeader = do
-    skipNonIndentSpace
-    lvl       <- atxHeaderLevel
+atxHeader = ATXHeader
+    <$> (    skipNonIndentSpace
+          *> atxHeaderLevel
+         <* notFollowedBy isNonSpaceChar
+        )
+    <*> (stripAsciiSpaces . removeATXSuffix <$> takeText)
+
+
+notFollowedBy :: (Char -> Bool) -> Parser ()
+notFollowedBy p = do
     maybeChar <- peekChar
     case maybeChar of
-        Nothing                   -> return $! ATXHeader lvl T.empty
-        Just c | isNonSpaceChar c -> failure
-        _                         -> do
-            t <- stripAsciiSpaces . removeATXSuffix <$> takeText
-            return $! ATXHeader lvl t
+        Nothing -> return ()
+        Just c | p c       -> failure
+               | otherwise -> return ()
 
 -- | Parse the opening sequence of #s of an ATX header and return the header
 -- level.
