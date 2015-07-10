@@ -13,6 +13,7 @@ module CommonMark.Parser
     , setextHeaderUnderLine
     , openingCodeFence
     , closingCodeFence
+    , blockQuoteMarker
     , infoString
     ) where
 
@@ -60,6 +61,11 @@ discard p = () <$ p
 -- | Parse an ASCII space character.
 asciiSpace :: Parser Char
 asciiSpace = satisfy isAsciiSpaceChar
+
+
+-- | Skip /one/ ASCII space character.
+skipAsciiSpace :: Parser ()
+skipAsciiSpace = discard $ asciiSpace
 
 -- | Skip /zero/ or more ASCII space characters.
 skipAsciiSpaces :: Parser ()
@@ -225,6 +231,13 @@ textOrBlankLine = textOrBlank <$> takeText
     textOrBlank t
         | T.all (\c -> isAsciiSpaceChar c || isTab c) t = BlankLine t
         | otherwise                                     = TextLine t
+
+
+blockQuoteMarker :: Parser ()
+blockQuoteMarker =
+    skipNonIndentSpace
+    *> char '>'
+    *> option () skipAsciiSpace
 
 
 --- inlines
