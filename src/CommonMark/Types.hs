@@ -2,8 +2,10 @@
 
 module CommonMark.Types where
 
+import Data.Sequence ( Seq )
 import qualified Data.Map as M
-import           Data.Text ( Text )
+-- import qualified Data.Map.Strict as M
+import Data.Text ( Text )
 
 
 -- | Root of the document's AST
@@ -18,12 +20,18 @@ data Block = Hrule
            | HtmlBlock !Text
            | Paragraph Inlines
            | Blockquote Blocks
-           | List !Bool {- loose or tight -} !ListType [Blocks]
+           | List !Bool {- loose or tight -} !ListType Items
            deriving (Show)
 
-type Blocks = [] Block -- use lists for now, switch to Seq later perhaps
-
 type InfoString = Text
+
+-- the Item type is for making list items more explicit in the AST
+type Items = Seq Item
+
+newtype Item = Item Blocks
+  deriving (Show)
+
+type Blocks = Seq Block
 
 data ListType = Bullet  !BulletType
               | Ordered !NumDelim !StartNum
@@ -46,15 +54,13 @@ type StartNum = Int
 data Inline = Inline Text -- FIXME
   deriving (Show)
 
-type Inlines = [] Inline  -- use lists for now, switch to Seq later perhaps
+type Inlines = Seq Inline
 
 
 -- | Map of link references
-type LinkLabel       = Text
-type LinkDestination = Text
-type LinkTitle       = Text
 
-type ReferenceMap = M.Map LinkLabel (LinkDestination, Maybe LinkTitle)
+type RefMap = M.Map Text                -- label
+                    (Text, Maybe Text)  -- (destination, optional title)
 
 
 -- | Parsing options
