@@ -65,7 +65,7 @@ asciiSpace = satisfy isAsciiSpaceChar
 
 -- | Skip /one/ ASCII space character.
 skipAsciiSpace :: Parser ()
-skipAsciiSpace = discard $ asciiSpace
+skipAsciiSpace = discard asciiSpace
 
 -- | Skip /zero/ or more ASCII space characters.
 skipAsciiSpaces :: Parser ()
