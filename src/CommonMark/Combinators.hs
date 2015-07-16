@@ -20,6 +20,7 @@ import Data.Attoparsec.Text
 -- import Text.Parsec.Text (Parser)
 
 -- | "Lifted" version of @(++)@.
+infixr 5 <++>
 (<++>) :: (Applicative f) => f [a] -> f [a] -> f [a]
 (<++>) = liftA2 (++)
 
