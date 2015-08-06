@@ -2,6 +2,7 @@
 
 module CommonMark.Types where
 
+import Data.Default
 import Data.Sequence ( Seq )
 import qualified Data.Map as M
 -- import qualified Data.Map.Strict as M
@@ -9,8 +10,8 @@ import Data.Text ( Text )
 
 
 -- | Root of the document's AST
--- ParseOptions are included here so that we know how a Doc was obtained.
-data Doc = Doc ParseOptions Blocks
+-- ParsingOptions are included here so that we know how a Doc was obtained.
+data Doc = Doc ParsingOptions Blocks
   deriving (Show)
 
 -- | Block-level element
@@ -28,7 +29,7 @@ type InfoString = Text
 -- the Item type is for making list items more explicit in the AST
 type Items = Seq Item
 
-newtype Item = Item Blocks
+newtype Item = Item { blks :: Blocks }
   deriving (Show)
 
 type Blocks = Seq Block
@@ -58,7 +59,6 @@ type Inlines = Seq Inline
 
 
 -- | Map of link references
-
 type RefMap = M.Map Text                -- label
                     (Text, Maybe Text)  -- (destination, optional title)
 
@@ -66,7 +66,10 @@ type RefMap = M.Map Text                -- label
 -- | Parsing options
 -- (Note: rendering options should go with the renderer, not here)
 
-data ParseOptions = ParseOptions
+data ParsingOptions = ParsingOptions
     { option1 :: !Bool -- placeholder
     , option2 :: !Bool -- placeholder
     } deriving (Show)
+
+instance Default ParsingOptions where
+    def = ParsingOptions True True
