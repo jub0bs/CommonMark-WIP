@@ -29,7 +29,7 @@ type InfoString = Text
 -- the Item type is for making list items more explicit in the AST
 type Items = Seq Item
 
-newtype Item = Item { blks :: Blocks }
+newtype Item = Item { blocks :: Blocks }
   deriving (Show)
 
 type Blocks = Seq Block
@@ -44,7 +44,7 @@ data BulletType = Hyphen
                 deriving (Show, Eq)
 
 data NumDelim = FullStop
-              | RightParen
+              | RightParenthesis
               deriving (Show, Eq)
 
 type StartNum = Int
@@ -52,15 +52,28 @@ type StartNum = Int
 
 -- | Inlines elements
 
-data Inline = Inline Text -- FIXME
-  deriving (Show)
+data Inline = Escaped !Char
+            | Entity !Text
+            | CodeSpan !Text
+            | Emph Inlines
+            | Strong Inlines
+            | Link  Inlines !Destination (Maybe Title)
+            | Image Inlines !Destination (Maybe Title)
+            | RawHTML !Text
+            | HardBreak
+            | SoftBreak
+            | Textual !Text
+            deriving (Show)
+
+-- link- and image-related type synonyms
+type Label       = Text
+type Destination = Text
+type Title       = Text
 
 type Inlines = Seq Inline
 
-
 -- | Map of link references
-type RefMap = M.Map Text                -- label
-                    (Text, Maybe Text)  -- (destination, optional title)
+type RefMap = M.Map Label (Destination, Maybe Title)
 
 
 -- | Parsing options

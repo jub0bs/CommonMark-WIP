@@ -12,12 +12,15 @@ module CommonMark.Util
     , isATXHeaderChar
     , stripAsciiSpaces
     , stripATXSuffix
+    , replacementChar
     , detab
     , replaceNullChars
     ) where
 
 import           Control.Applicative                      ( liftA2 )
-import           Data.Char                                ( ord )
+import           Data.Char                                ( ord
+                                                          , digitToInt
+                                                          )
 import           Data.Text                                ( Text )
 import qualified Data.Text                     as T
 import           Data.CharSet                             ( CharSet )
@@ -108,10 +111,13 @@ stripATXSuffix t
     t' = T.dropWhileEnd isATXHeaderChar  .
          T.dropWhileEnd isAsciiSpaceChar $ t
 
+-- | The replacement character (i.e. the character of codepoint 0xFFFD).
+replacementChar :: Char
+replacementChar = '\xFFFD'
 
--- Convert tabs to spaces using a 4-space tab stop;
--- intended to operate on a single line of input.
--- (adapted from Cheapstake.Util)
+-- Convert tabs to spaces using a 4-space tab stop.
+-- Intended to operate on a single line of input.
+-- (adapted from jgm's Cheapstake.Util)
 detab :: Text -> Text
 detab = T.concat . pad . T.split (== '\t')
   where
