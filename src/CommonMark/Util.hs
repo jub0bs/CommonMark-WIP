@@ -13,6 +13,7 @@ module CommonMark.Util
     , stripAsciiSpaces
     , stripATXSuffix
     , replacementChar
+    , isAsciiLetter
     , detab
     , replaceNullChars
     ) where
@@ -20,6 +21,8 @@ module CommonMark.Util
 import           Control.Applicative                      ( liftA2 )
 import           Data.Char                                ( ord
                                                           , digitToInt
+                                                          , isAscii
+                                                          , isLetter
                                                           )
 import           Data.Text                                ( Text )
 import qualified Data.Text                     as T
@@ -28,6 +31,7 @@ import qualified Data.CharSet                  as CharSet
 import qualified Data.CharSet.Unicode.Category as CharSet ( punctuation
                                                           , space
                                                           )
+import qualified Data.Map as M
 
 -- | "Lifted" version of @(++)@.
 (<++>) :: (Applicative f) => f [a] -> f [a] -> f [a]
@@ -114,6 +118,10 @@ stripATXSuffix t
 -- | The replacement character (i.e. the character of codepoint 0xFFFD).
 replacementChar :: Char
 replacementChar = '\xFFFD'
+
+-- | Self-explanatory.
+isAsciiLetter :: Char -> Bool
+isAsciiLetter c = isAscii c && isLetter c
 
 -- Convert tabs to spaces using a 4-space tab stop.
 -- Intended to operate on a single line of input.

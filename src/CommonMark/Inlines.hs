@@ -1,8 +1,12 @@
 -- | Parsers for inlines.
 
+{-# LANGUAGE OverloadedStrings #-}
+
 module CommonMark.Inlines
     ( escapedChar
-    , numericEntity
+    , entity
+    , namedEntity     -- temporary
+    , numericEntity   -- temporary
     ) where
 
 import Control.Applicative ( (<|>) )
@@ -14,6 +18,7 @@ import Data.Char ( chr
                  , isHexDigit
                  , ord
                  )
+import qualified Data.Map as M
 import Data.Text ( Text )
 import qualified Data.Text as T
 import Data.Attoparsec.Text hiding ( endOfLine )
@@ -21,27 +26,38 @@ import Data.Attoparsec.Text hiding ( endOfLine )
 import CommonMark.Util
 import CommonMark.Types
 import CommonMark.Combinators
+import CommonMark.HtmlEntities ( entityText )
 
 -- Escaped characters
 
---
+-- | Parse an escaped ASCII punctuation character.
 escapedChar :: Parser Inline
 escapedChar = Escaped <$> (char '\\' *> satisfy isAsciiPunctuationChar)
 
 
 -- HTML entities
 
--- Parse a named entity.
+-- | Parse a HTML (named or numeric) entity.
+entity :: Parser Inline
+entity = namedEntity <|> numericEntity
 
-
+-- | Parse a valid HTML5 named entity.
+namedEntity :: Parser Inline
+namedEntity = do
+    t <- (char '&' *> asciiWord <* char ';')
+    case entityText t of
+        Nothing -> failure
+        Just t' -> return $! Entity t'
+  where
+    asciiWord = takeWhile1 isAsciiLetter
 
 -- | Parse a numeric (decimal or hexadecimal) entity. If the integer value
 -- obtained is a valid nonzero codepoint, return the corresponding character;
 -- otherwise, return the replacement character.
-numericEntity :: Parser Text
+numericEntity :: Parser Inline
 numericEntity = do
     n <- (string "&#" *> value <*  char ';')
-    return $! T.singleton $!
+    return $! Entity $ T.singleton $
         if 0 < n && n <= 0x10FFFF
         then chr n
         else replacementChar
