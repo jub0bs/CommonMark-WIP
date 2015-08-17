@@ -62,18 +62,6 @@ unicodeWhiteSpaceCharSet :: CharSet
 unicodeWhiteSpaceCharSet =
     CharSet.space `CharSet.union` CharSet.fromList "\t\r\n\f"
 
--- A space is U+0020.
-isAsciiSpaceChar :: Char -> Bool
-isAsciiSpaceChar c = c == ' '
-
-isTab :: Char -> Bool
-isTab = (== '\t')
-
-isNewline :: Char -> Bool
-isNewline = (== '\n')
-isBacktick :: Char -> Bool
-isBacktick = (== '`')
-
 -- A non-space character is any character that is not a whitespace character.
 isNonSpaceChar :: Char -> Bool
 isNonSpaceChar = not . isWhiteSpaceChar
@@ -102,11 +90,11 @@ isATXHeaderChar c = c == '#'
 
 -- | Remove leading and trailing ASCII spaces from a string.
 stripAsciiSpaces :: Text -> Text
-stripAsciiSpaces = T.dropAround isAsciiSpaceChar
+stripAsciiSpaces = T.dropAround (== ' ')
 
 -- | Remove leading and trailing ASCII spaces and newlines from a string.
 stripAsciiSpacesAndNewlines :: Text -> Text
-stripAsciiSpacesAndNewlines = T.dropAround (\c -> isAsciiSpaceChar c || isNewline c)
+stripAsciiSpacesAndNewlines = T.dropAround (\c -> c == ' ' || c == '\n')
 
 -- | Collapse each whitespace span to a single ASCII space.
 -- TODO: T.words is too permissive; a specialised version that only
@@ -118,12 +106,12 @@ collapseWhitespace = T.intercalate (T.singleton ' ') . T.words
 -- | @stripATXSuffix t@ strips an ATX-header suffix (if any) from @t@.
 stripATXSuffix :: Text -> Text
 stripATXSuffix t
-    | T.null t'                            = t
-    | not . isAsciiSpaceChar . T.last $ t' = t
-    | otherwise                            = T.init t'
+    | T.null t'              = t
+    | (/= ' ') . T.last $ t' = t
+    | otherwise              = T.init t'
   where
-    t' = T.dropWhileEnd isATXHeaderChar  .
-         T.dropWhileEnd isAsciiSpaceChar $ t
+    t' = T.dropWhileEnd (== '#') .
+         T.dropWhileEnd (== ' ') $ t
 
 -- | The replacement character (i.e. the character of codepoint 0xFFFD).
 replacementChar :: Char

@@ -102,3 +102,14 @@ codeSpan = do
         nonBacktickSpan = takeWhile1 (/= '`')
     contents <- T.concat <$> manyTill (nonBacktickSpan <|> backtickSpan) end
     return $! collapseWhitespace $ stripAsciiSpacesAndNewlines contents
+
+
+-- Emphasis and strong emphasis
+
+-- | Delimiter run.
+delimRun :: Parser Text
+delimRun = takeWhile1 (== '*') <|> takeWhile1 (== '_')
+
+-- | Left-flanking delimiter run.
+leftDelimRun :: Parser Text
+leftDelimRun = undefined
