@@ -39,24 +39,25 @@ escapedChar = Escaped <$> (char '\\' *> satisfy isAsciiPunctuationChar)
 
 -- | Parse a HTML (named or numeric) entity.
 entity :: Parser Inline
-entity = namedEntity <|> numericEntity
+entity = char '&' *> (namedEntity <|> numericEntity)
 
--- | Parse a valid HTML5 named entity.
+-- | Parse a valid HTML5 named entity stripped of its leading ampersand.
 namedEntity :: Parser Inline
 namedEntity = do
-    t <- (char '&' *> asciiWord <* char ';')
+    t <- (asciiWord <* semicolon)
     case entityText t of
         Nothing -> failure
         Just t' -> return $! Entity t'
   where
     asciiWord = takeWhile1 isAsciiLetter
 
--- | Parse a numeric (decimal or hexadecimal) entity. If the integer value
--- obtained is a valid nonzero codepoint, return the corresponding character;
--- otherwise, return the replacement character.
+-- | Parse a numeric (decimal or hexadecimal) entity stripped of its leading
+-- ampersand. If the integer value obtained is a valid nonzero codepoint,
+-- return the corresponding character; otherwise, return the replacement
+-- character.
 numericEntity :: Parser Inline
 numericEntity = do
-    n <- (string "&#" *> value <*  char ';')
+    n <- (char '#' *> value <*  semicolon)
     return $! Entity $ T.singleton $
         if 0 < n && n <= 0x10FFFF
         then chr n
@@ -64,6 +65,10 @@ numericEntity = do
   where
     value = (xX *> hexadecimal1To8) <|> decimal1To8
     xX    = satisfy (\c -> c == 'x' || c == 'X')
+
+-- | Parse a semicolon.
+semicolon :: Parser Char
+semicolon = char ';'
 
 -- | Parse an unsigned decimal integer composed of 1 to 8 digits.
 -- Adapted from 'Data.Attoparsec.Text.decimal'.
