@@ -5,8 +5,7 @@
 module CommonMark.Inlines
     ( escapedChar
     , entity
-    , namedEntity     -- temporary
-    , numericEntity   -- temporary
+    , codeSpan
     ) where
 
 import Control.Applicative ( (<|>) )
@@ -86,3 +85,21 @@ hexadecimal1To8 = T.foldl' step 0 <$> takeWhileLoHi isHexDigit 1 8
              | otherwise           = (a `shiftL` 4) .|. fromIntegral (w - 55)
       where
         w = ord c
+
+-- Code spans
+
+backtickChar :: Char
+backtickChar = '`'
+
+backticks1 :: Parser Text
+backticks1 = takeWhile1 (== backtickChar)
+
+-- | Adapted from 'Cheapskate.Inlines'.
+codeSpan :: Parser Text
+codeSpan = do
+    ticks <- backticks1
+    let end             = string ticks <* notFollowedBy (== backtickChar)
+        backtickSpan    = takeWhile1 (== backtickChar)
+        nonBacktickSpan = takeWhile1 (/= backtickChar)
+    contents <- T.concat <$> manyTill (nonBacktickSpan <|> backtickSpan) end
+    return $! collapseWhitespace $ stripAsciiSpacesAndNewlines contents

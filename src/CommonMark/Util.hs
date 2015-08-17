@@ -11,6 +11,8 @@ module CommonMark.Util
     , isPunctuationChar
     , isATXHeaderChar
     , stripAsciiSpaces
+    , stripAsciiSpacesAndNewlines
+    , collapseWhitespace
     , stripATXSuffix
     , replacementChar
     , isAsciiLetter
@@ -71,6 +73,8 @@ isAsciiSpaceChar c = c == ' '
 isTab :: Char -> Bool
 isTab = (== '\t')
 
+isNewline :: Char -> Bool
+isNewline = (== '\n')
 isBacktick :: Char -> Bool
 isBacktick = (== '`')
 
@@ -104,6 +108,13 @@ isATXHeaderChar c = c == '#'
 stripAsciiSpaces :: Text -> Text
 stripAsciiSpaces = T.dropAround isAsciiSpaceChar
 
+-- | Remove leading and trailing ASCII spaces and newlines from a string.
+stripAsciiSpacesAndNewlines :: Text -> Text
+stripAsciiSpacesAndNewlines = T.dropAround (\c -> isAsciiSpaceChar c || isNewline c)
+
+-- | Collapse each whitespace span to a single ASCII space.
+collapseWhitespace :: Text -> Text
+collapseWhitespace = T.intercalate (T.singleton ' ') . T.words
 
 -- | @stripATXSuffix t@ strips an ATX-header suffix (if any) from @t@.
 stripATXSuffix :: Text -> Text
@@ -145,5 +156,5 @@ replaceNullChars :: Text -> Text
 replaceNullChars = T.map replaceNUL
   where
     replaceNUL c
-        |  c == '\NUL' = '\xFFFD'
+        |  c == '\NUL' = replacementChar
         | otherwise    = c
