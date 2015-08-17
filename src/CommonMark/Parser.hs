@@ -88,7 +88,7 @@ skipNonIndentSpace = skipAsciiSpaces0to3
 
 -- | Skip /zero/ or more whitespace characters.
 whitespace :: Parser ()
-whitespace = discard $ takeWhile isWhiteSpaceChar
+whitespace = discard $ takeWhile isWhitespaceChar
 
 -- | Skip a CommonMark line ending.
 endOfLine :: Parser ()

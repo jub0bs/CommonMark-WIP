@@ -1,8 +1,8 @@
 module CommonMark.Util
     ( (<++>)
     , isEndOfLineChar
-    , isWhiteSpaceChar
-    , isUnicodeWhiteSpaceChar
+    , isWhitespaceChar
+    , isUnicodeWhitespaceChar
     , isNonSpaceChar
     , isAsciiPunctuationChar
     , isPunctuationChar
@@ -42,8 +42,8 @@ isEndOfLineChar c = c == '\n' || c == '\r'
 
 -- A whitespace character is a space (U+0020), tab (U+0009), newline (U+000A),
 -- line tabulation (U+000B), form feed (U+000C), or carriage return (U+000D).
-isWhiteSpaceChar :: Char -> Bool
-isWhiteSpaceChar c =    c == ' '
+isWhitespaceChar :: Char -> Bool
+isWhitespaceChar c =    c == ' '
                      || c == '\t'
                      || c == '\n'
                      || c == '\v'
@@ -54,17 +54,17 @@ isWhiteSpaceChar c =    c == ' '
 -- or a tab (U+0009), carriage return (U+000D), newline (U+000A), or form feed
 -- (U+000C).
 -- (See http://www.unicode.org/Public/UNIDATA/UnicodeData.txt for details.)
-isUnicodeWhiteSpaceChar :: Char -> Bool
-isUnicodeWhiteSpaceChar c = c `CharSet.member` unicodeWhiteSpaceCharSet
+isUnicodeWhitespaceChar :: Char -> Bool
+isUnicodeWhitespaceChar c = c `CharSet.member` unicodeWhitespaceCharSet
 
 -- The set of unicode whitespace characters.
-unicodeWhiteSpaceCharSet :: CharSet
-unicodeWhiteSpaceCharSet =
+unicodeWhitespaceCharSet :: CharSet
+unicodeWhitespaceCharSet =
     CharSet.space `CharSet.union` CharSet.fromList "\t\r\n\f"
 
 -- A non-space character is any character that is not a whitespace character.
 isNonSpaceChar :: Char -> Bool
-isNonSpaceChar = not . isWhiteSpaceChar
+isNonSpaceChar = not . isWhitespaceChar
 
 -- An ASCII punctuation character is !, ", #, $, %, &, ', (, ), *, +, ,, -, .,
 -- /, :, ;, <, =, >, ?, @, [, \, ], ^, _, `, {, |, }, or ~.
@@ -97,11 +97,10 @@ stripAsciiSpacesAndNewlines :: Text -> Text
 stripAsciiSpacesAndNewlines = T.dropAround (\c -> c == ' ' || c == '\n')
 
 -- | Collapse each whitespace span to a single ASCII space.
--- TODO: T.words is too permissive; a specialised version that only
--- break "words: at whitespace as defined by the CommonMark spec should be
--- used instead.
 collapseWhitespace :: Text -> Text
-collapseWhitespace = T.intercalate (T.singleton ' ') . T.words
+collapseWhitespace = T.intercalate (T.singleton ' ') . words
+  where
+    words = filter (not . T.null) . T.split isWhitespaceChar
 
 -- | @stripATXSuffix t@ strips an ATX-header suffix (if any) from @t@.
 stripATXSuffix :: Text -> Text
