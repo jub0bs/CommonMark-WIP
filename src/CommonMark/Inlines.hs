@@ -86,20 +86,19 @@ hexadecimal1To8 = T.foldl' step 0 <$> takeWhileLoHi isHexDigit 1 8
       where
         w = ord c
 
+
 -- Code spans
 
-backtickChar :: Char
-backtickChar = '`'
-
+-- | Parse one or more backticks
 backticks1 :: Parser Text
-backticks1 = takeWhile1 (== backtickChar)
+backticks1 = takeWhile1 (== '`')
 
 -- | Adapted from 'Cheapskate.Inlines'.
 codeSpan :: Parser Text
 codeSpan = do
     ticks <- backticks1
-    let end             = string ticks <* notFollowedBy (== backtickChar)
-        backtickSpan    = takeWhile1 (== backtickChar)
-        nonBacktickSpan = takeWhile1 (/= backtickChar)
+    let end             = string ticks <* notFollowedBy (== '`')
+        backtickSpan    = takeWhile1 (== '`')
+        nonBacktickSpan = takeWhile1 (/= '`')
     contents <- T.concat <$> manyTill (nonBacktickSpan <|> backtickSpan) end
     return $! collapseWhitespace $ stripAsciiSpacesAndNewlines contents

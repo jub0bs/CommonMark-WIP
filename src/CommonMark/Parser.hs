@@ -60,7 +60,7 @@ discard p = () <$ p
 --
 -- | Parse an ASCII space character.
 asciiSpace :: Parser Char
-asciiSpace = satisfy isAsciiSpaceChar
+asciiSpace = char ' '
 
 
 -- | Skip /one/ ASCII space character.
@@ -69,14 +69,14 @@ skipAsciiSpace = discard asciiSpace
 
 -- | Skip /zero/ or more ASCII space characters.
 skipAsciiSpaces :: Parser ()
-skipAsciiSpaces = discard $ takeWhile isAsciiSpaceChar
+skipAsciiSpaces = discard $ takeWhile (== ' ')
 
 -- | Skip /one/ or more ASCII space characters.
 skipAsciiSpaces1 :: Parser ()
-skipAsciiSpaces1 = discard $ takeWhile1 isAsciiSpaceChar
+skipAsciiSpaces1 = discard $ takeWhile1 (== ' ')
 
 asciiSpaces0to3 :: Parser Int
-asciiSpaces0to3 = T.length <$> takeWhileHi isAsciiSpaceChar 3
+asciiSpaces0to3 = T.length <$> takeWhileHi (== ' ') 3
 
 
 -- | Skip between /zero/ and /three/ ASCII space characters.
@@ -144,7 +144,7 @@ atxHeaderLevel =
 atxHeaderPrefix :: Parser Text
 atxHeaderPrefix =
        skipNonIndentSpace
-    *> takeWhileLoHi isATXHeaderChar 1 6
+    *> takeWhileLoHi (== '#') 1 6
    <*  notFollowedBy isNonSpaceChar
    <?> "ATX-header prefix"
 
@@ -194,7 +194,7 @@ codeFence = go '`' <|> go '~'
 infoString :: Parser Text
 infoString =
         stripAsciiSpaces
-    <$> takeWhile (not . isBacktick)
+    <$> takeWhile (/= '`')
     <*  endOfInput
 
 -- | Parse an opening code fence and return TODO
@@ -209,7 +209,7 @@ openingCodeFence = do
     t <- infoString
     return t
 
--- | Parse an closing code fence and return TODO
+-- | Parse a closing code fence and return TODO
 -- Intended to operate on a single line of input.
 -- TODO: return FenceType
 --              number of chars in code fence
@@ -229,8 +229,8 @@ textOrBlankLine :: Parser Leaf
 textOrBlankLine = textOrBlank <$> takeText
   where
     textOrBlank t
-        | T.all (\c -> isAsciiSpaceChar c || isTab c) t = BlankLine t
-        | otherwise                                     = TextLine t
+        | T.all (\c -> c == ' ' || c == '\t') t = BlankLine t
+        | otherwise                             = TextLine t
 
 
 blockQuoteMarker :: Parser ()

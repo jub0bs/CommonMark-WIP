@@ -3,13 +3,9 @@ module CommonMark.Util
     , isEndOfLineChar
     , isWhiteSpaceChar
     , isUnicodeWhiteSpaceChar
-    , isAsciiSpaceChar
     , isNonSpaceChar
-    , isTab
-    , isBacktick
     , isAsciiPunctuationChar
     , isPunctuationChar
-    , isATXHeaderChar
     , stripAsciiSpaces
     , stripAsciiSpacesAndNewlines
     , collapseWhitespace
@@ -113,6 +109,9 @@ stripAsciiSpacesAndNewlines :: Text -> Text
 stripAsciiSpacesAndNewlines = T.dropAround (\c -> isAsciiSpaceChar c || isNewline c)
 
 -- | Collapse each whitespace span to a single ASCII space.
+-- TODO: T.words is too permissive; a specialised version that only
+-- break "words: at whitespace as defined by the CommonMark spec should be
+-- used instead.
 collapseWhitespace :: Text -> Text
 collapseWhitespace = T.intercalate (T.singleton ' ') . T.words
 
