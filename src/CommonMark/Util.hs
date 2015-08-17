@@ -98,9 +98,18 @@ stripAsciiSpacesAndNewlines = T.dropAround (\c -> c == ' ' || c == '\n')
 
 -- | Collapse each whitespace span to a single ASCII space.
 collapseWhitespace :: Text -> Text
-collapseWhitespace = T.intercalate (T.singleton ' ') . words
+collapseWhitespace = T.intercalate (T.singleton ' ') . codeSpanWords
+
+-- | Breaks a 'Text' up into a list of words, delimited by 'Char's
+-- representing whitespace (as defined by the CommonMark spec).
+codeSpanWords :: Text -> [Text]
+codeSpanWords = go
   where
-    words = filter (not . T.null) . T.split isWhitespaceChar
+    go t | T.null word  = []
+         | otherwise    = word : go rest
+      where (word, rest) = T.break isWhitespaceChar $
+                           T.dropWhile isWhitespaceChar t
+{-# INLINE codeSpanWords #-}
 
 -- | @stripATXSuffix t@ strips an ATX-header suffix (if any) from @t@.
 stripATXSuffix :: Text -> Text
