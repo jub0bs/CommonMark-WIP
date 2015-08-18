@@ -17,6 +17,7 @@ import Data.Char ( chr
                  , isHexDigit
                  , ord
                  )
+
 import qualified Data.Map as M
 import Data.Text ( Text )
 import qualified Data.Text as T
@@ -43,7 +44,7 @@ entity = char '&' *> (namedEntity <|> numericEntity)
 -- | Parse a valid HTML5 named entity stripped of its leading ampersand.
 namedEntity :: Parser Inline
 namedEntity = do
-    t <- (asciiWord <* semicolon)
+    t <- asciiWord <* semicolon
     case entityText t of
         Nothing -> failure
         Just t' -> return $! Entity t'
@@ -56,7 +57,7 @@ namedEntity = do
 -- character.
 numericEntity :: Parser Inline
 numericEntity = do
-    n <- (char '#' *> value <*  semicolon)
+    n <- char '#' *> value <*  semicolon
     return $! Entity $ T.singleton $
         if 0 < n && n <= 0x10FFFF
         then chr n
@@ -94,14 +95,15 @@ backticks1 :: Parser Text
 backticks1 = takeWhile1 (== '`')
 
 -- | Adapted from 'Cheapskate.Inlines'.
-codeSpan :: Parser Text
+codeSpan :: Parser Inline
 codeSpan = do
     ticks <- backticks1
-    let end             = string ticks <* notFollowedBy (== '`')
-        backtickSpan    = takeWhile1 (== '`')
-        nonBacktickSpan = takeWhile1 (/= '`')
-    contents <- T.concat <$> manyTill (nonBacktickSpan <|> backtickSpan) end
-    return $! collapseWhitespace $ stripAsciiSpacesAndNewlines contents
+    let end           = string ticks <* notFollowedBy (== '`')
+        nonBackticks1 = takeWhile1 (/= '`')
+    contents <- T.concat <$> manyTill (nonBackticks1 <|> backticks1) end
+    return $! CodeSpan
+           $  collapseWhitespace
+           $  stripAsciiSpacesAndNewlines contents
 
 
 -- Emphasis and strong emphasis
@@ -110,6 +112,8 @@ codeSpan = do
 delimRun :: Parser Text
 delimRun = takeWhile1 (== '*') <|> takeWhile1 (== '_')
 
--- | Left-flanking delimiter run.
-leftDelimRun :: Parser Text
-leftDelimRun = undefined
+
+-- Autolinks
+
+uriAutolink :: Parser Text
+uriAutolink = undefined
