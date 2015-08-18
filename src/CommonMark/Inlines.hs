@@ -27,6 +27,7 @@ import CommonMark.Util
 import CommonMark.Types
 import CommonMark.Combinators
 import CommonMark.HtmlEntities ( entityText )
+import CommonMark.Schemes ( isValidScheme )
 
 -- Escaped characters
 
