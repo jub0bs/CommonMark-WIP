@@ -1,11 +1,13 @@
 module CommonMark.Util
     ( (<++>)
     , isEndOfLineChar
+    , isAsciiAlphaNum
     , isWhitespaceChar
     , isUnicodeWhitespaceChar
     , isNonSpaceChar
     , isAsciiPunctuationChar
     , isPunctuationChar
+    , isAtextChar
     , stripAsciiSpaces
     , stripAsciiSpacesAndNewlines
     , collapseWhitespace
@@ -16,19 +18,20 @@ module CommonMark.Util
     , replaceNullChars
     ) where
 
-import           Control.Applicative                      ( liftA2 )
-import           Data.Char                                ( ord
-                                                          , digitToInt
-                                                          , isAscii
-                                                          , isLetter
-                                                          )
-import           Data.Text                                ( Text )
+import           Control.Applicative                 ( liftA2 )
+import           Data.Char                           ( ord
+                                                     , digitToInt
+                                                     , isAlphaNum
+                                                     , isAscii
+                                                     , isLetter
+                                                     )
+import           Data.Text                           ( Text )
 import qualified Data.Text                     as T
-import           Data.CharSet                             ( CharSet )
-import qualified Data.CharSet                  as CharSet
-import qualified Data.CharSet.Unicode.Category as CharSet ( punctuation
-                                                          , space
-                                                          )
+import           Data.CharSet                        ( CharSet )
+import qualified Data.CharSet                  as CS
+import qualified Data.CharSet.Unicode.Category as CS ( punctuation
+                                                     , space
+                                                     )
 import qualified Data.Map as M
 
 -- | "Lifted" version of @(++)@.
@@ -39,6 +42,9 @@ import qualified Data.Map as M
 -- return + newline.
 isEndOfLineChar :: Char -> Bool
 isEndOfLineChar c = c == '\n' || c == '\r'
+
+isAsciiAlphaNum :: Char -> Bool
+isAsciiAlphaNum c = isAscii c && isAlphaNum c
 
 -- A whitespace character is a space (U+0020), tab (U+0009), newline (U+000A),
 -- line tabulation (U+000B), form feed (U+000C), or carriage return (U+000D).
@@ -55,12 +61,12 @@ isWhitespaceChar c =    c == ' '
 -- (U+000C).
 -- (See http://www.unicode.org/Public/UNIDATA/UnicodeData.txt for details.)
 isUnicodeWhitespaceChar :: Char -> Bool
-isUnicodeWhitespaceChar c = c `CharSet.member` unicodeWhitespaceCharSet
+isUnicodeWhitespaceChar c = c `CS.member` unicodeWhitespaceCharSet
 
 -- The set of unicode whitespace characters.
 unicodeWhitespaceCharSet :: CharSet
 unicodeWhitespaceCharSet =
-    CharSet.space `CharSet.union` CharSet.fromList "\t\r\n\f"
+    CS.space `CS.union` CS.fromList "\t\r\n\f"
 
 -- A non-space character is any character that is not a whitespace character.
 isNonSpaceChar :: Char -> Bool
@@ -70,23 +76,24 @@ isNonSpaceChar = not . isWhitespaceChar
 -- /, :, ;, <, =, >, ?, @, [, \, ], ^, _, `, {, |, }, or ~.
 isAsciiPunctuationChar :: Char -> Bool
 isAsciiPunctuationChar c =
-    c `CharSet.member` asciiPunctuationCharSet
+    c `CS.member` asciiPunctuationCharSet
 
 asciiPunctuationCharSet :: CharSet
 asciiPunctuationCharSet =
-    CharSet.fromList "!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~"
+    CS.fromList "!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~"
 
 -- A punctuation character is an ASCII punctuation character or anything in
 -- the unicode classes Pc, Pd, Pe, Pf, Pi, Po, or Ps.
 -- Note: Data.CharSet.punctuation contains "!\"#%&'()*,-./:;?@[\\]_{}".
 isPunctuationChar :: Char -> Bool
 isPunctuationChar c =
-       c `CharSet.member` CharSet.fromList "$+<=>^`|~"
-    || c `CharSet.member` CharSet.punctuation
+       c `CS.member` CS.fromList "$+<=>^`|~"
+    || c `CS.member` CS.punctuation
 
 -- | TODO
-isATXHeaderChar :: Char -> Bool
-isATXHeaderChar c = c == '#'
+isAtextChar :: Char -> Bool
+isAtextChar = let charset = CS.fromList "!#$%&'*+\\/=?^_`{|}~-" in
+    \c -> isAsciiAlphaNum c || c `CS.member` charset
 
 -- | Remove leading and trailing ASCII spaces from a string.
 stripAsciiSpaces :: Text -> Text

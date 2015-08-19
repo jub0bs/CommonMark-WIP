@@ -6,8 +6,10 @@ module CommonMark.Inlines
     ( escapedChar
     , entity
     , codeSpan
+    , autolink
     ) where
 
+import Prelude hiding ( takeWhile )
 import Control.Applicative ( (<|>) )
 import Data.Bits ( (.|.)
                  , shiftL
@@ -21,6 +23,8 @@ import Data.Char ( chr
 import qualified Data.Map as M
 import Data.Text ( Text )
 import qualified Data.Text as T
+import Data.Sequence as S
+
 import Data.Attoparsec.Text hiding ( endOfLine )
 
 import CommonMark.Util
@@ -116,5 +120,52 @@ delimRun = takeWhile1 (== '*') <|> takeWhile1 (== '_')
 
 -- Autolinks
 
-uriAutolink :: Parser Text
-uriAutolink = undefined
+-- | Parse an autolink.
+autolink :: Parser Inline
+autolink = do
+    char '<'
+    absoluteURI' <|> emailAddress'
+  where
+    absoluteURI' = do
+        uri <- absoluteURI
+        char '>'
+        return $! Link (S.singleton $! Textual uri) uri Nothing
+    emailAddress' = do
+        addr <- emailAddress
+        char '>'
+        return $! Link (S.singleton $! Textual addr)
+                       ("mailto:" `T.append` addr)
+                       Nothing
+
+-- | Parse an absolute URI.
+absoluteURI :: Parser Text
+absoluteURI = do
+    schm <- candidateScheme
+    if isValidScheme schm
+    then do
+        char ':'
+        rest <- schemeSpecificPart
+        return $! T.concat [schm, T.singleton ':', rest]
+    else failure
+  where
+    candidateScheme = takeWhile1 (\c -> isAsciiLetter c ||
+                                        isDigit c       ||
+                                        c == '-'        ||
+                                        c == '.'
+                                 )
+    schemeSpecificPart = takeWhile (\c -> c /= ' ' &&
+                                          c /= '<' &&
+                                          c /= '>'
+                                   )
+
+-- | Parse an email address.
+emailAddress :: Parser Text
+emailAddress =  T.concat <$> sequence [localPart, string "@", domain]
+  where
+    localPart = takeWhile1 (\c -> isAtextChar c || c == '.')
+    domain    = T.intercalate "." <$> sepBy1 label (char '.')
+    label     = do
+        t <- takeWhileLoHi (\c -> isAsciiAlphaNum c || c == '-') 1 63
+        if T.head t == '-' || T.last t == '-'
+        then failure
+        else return t

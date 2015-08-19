@@ -69,7 +69,7 @@ takeWhileLo f lo =
 -- (Adapted from @Cheapskate.Combinators.upToCountChars@)
 --
 -- FIXME: returns a continuation if fed 'hi' characters that satisfy the
--- predicate
+-- predicate... why?
 takeWhileHi :: (Char -> Bool) -> Int -> Parser Text
 takeWhileHi f hi =
     scan 0 $ \n c -> if n < hi && f c

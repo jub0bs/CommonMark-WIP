@@ -1,14 +1,18 @@
+-- | URI schemes.
+
 module CommonMark.Schemes
     ( isValidScheme
     ) where
 
+import Data.Char ( toLower )
 import Data.Set ( Set )
 import qualified Data.Set as S
 import Data.Text ( Text )
+import qualified Data.Text as T
 
 -- | Self-explanatory.
 isValidScheme :: Text -> Bool
-isValidScheme t = t `S.member` schemes
+isValidScheme t = T.map toLower t `S.member` schemes
 
 -- | Valid schemes for autolinks.
 schemes :: Set Text
