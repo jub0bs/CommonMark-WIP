@@ -1,6 +1,6 @@
--- | Parsers for inlines.
-
 {-# LANGUAGE OverloadedStrings #-}
+
+-- | Parsers for inlines.
 
 module CommonMark.FrontEnd.Inlines
     ( escapedChar
@@ -9,7 +9,6 @@ module CommonMark.FrontEnd.Inlines
     , autolink
     ) where
 
-import Prelude hiding ( takeWhile )
 import Control.Applicative ( (<|>) )
 import Data.Bits ( (.|.)
                  , shiftL
@@ -19,19 +18,19 @@ import Data.Char ( chr
                  , isHexDigit
                  , ord
                  )
-
-import qualified Data.Map as M
+import qualified Data.Sequence as S
 import Data.Text ( Text )
-import qualified Data.Text as T
-import Data.Sequence as S
+import qualified Data.Text     as T
+import Prelude hiding ( takeWhile )
 
 import Data.Attoparsec.Text hiding ( endOfLine )
 
 import CommonMark.Types
+import CommonMark.Util.Char
 import CommonMark.Util.Combinators
 import CommonMark.Util.Entities ( entityText )
-import CommonMark.Util.Misc
 import CommonMark.Util.Schemes ( isValidScheme )
+import CommonMark.Util.Text
 
 -- Escaped characters
 

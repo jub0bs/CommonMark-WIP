@@ -17,20 +17,18 @@ module CommonMark.FrontEnd.Blocks
     , infoString
     ) where
 
-import Prelude hiding ( lines, takeWhile )
 
-import Control.Applicative ( (<|>)
-                           , (<$)
-                           , (<*>))
-import Control.Monad ( mzero )
+import Control.Applicative ( (<|>), liftA2 )
+import Prelude hiding ( lines, takeWhile )
 import Data.Text ( Text )
 import qualified Data.Text as T
 
 import Data.Attoparsec.Text hiding ( endOfLine )
 
 import CommonMark.Types
-import CommonMark.Util.Misc
 import CommonMark.Util.Combinators
+import CommonMark.Util.Char
+import CommonMark.Util.Text
 
 commonmark :: Text -> [Text] -- FIXME
 commonmark = map detab . processLines
@@ -55,6 +53,9 @@ processLines t = ts
 discard :: Parser a -> Parser ()
 discard p = () <$ p
 
+-- | Plain old '(++)' lifted to applicative functors.
+(<++>) :: (Applicative f) => f [a] -> f [a] -> f [a]
+(<++>) = liftA2 (++)
 
 -- Whitespace / scanner
 --
