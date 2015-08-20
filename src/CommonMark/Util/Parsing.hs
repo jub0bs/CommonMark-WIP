@@ -1,12 +1,18 @@
--- | Some parsing combinators extending attoparsec's built-in ones.
-
+-- | This module provides some convenient parsers and parsing combinators
+-- that supplement attoparsec's built-in ones.
 module CommonMark.Util.Parsing
-    ( discard
+    (
+    -- * Success and failure
+      success
     , failure
-    , success
+
+    -- * Combinators
+    , discard
     , optional
     , notFollowedBy
     , countOrMore
+
+    -- * Count-based 'Text' parsers
     , takeWhileLo
     , takeWhileHi
     , takeWhileLoHi
@@ -17,33 +23,27 @@ import Data.Text ( Text )
 import qualified Data.Text as T
 import Prelude hiding ( takeWhile )
 
-import Data.Attoparsec.Text
-
--- | Plain old '(++)' lifted to applicative functors.
-infixr 5 <++>
-(<++>) :: (Applicative f) => f [a] -> f [a] -> f [a]
-(<++>) = liftA2 (++)
-
--- | @optional p@ tries to apply parser @p@. Parses @p@ (and discards the
--- latter's  result) or nothing. Does not fail.
-optional :: Parser a -> Parser ()
-optional p = discard p <|> success
-
--- | @discard p@ applies action @p@ but discards its result.
-discard :: Parser a -> Parser ()
-discard p = () <$ p
-
--- | @failure@ is a parser that always fails.
-failure :: Parser a
-failure = mempty
+import Data.Attoparsec.Text ( Parser, count, peekChar, scan, takeWhile )
 
 -- | @success@ is a parser that always succeeds.
 success :: Parser ()
 success = return ()
 
--- | @notFollowedBy p@ succeeds if there is no input left or if the next
--- character does not satisfy predicate @p@.
--- Consumes no input.
+-- | @failure@ is a parser that always fails.
+failure :: Parser a
+failure = fail "no parse"
+
+-- | @discard p@ applies parser @p@ and discards the latter's result.
+discard :: Parser a -> Parser ()
+discard p = () <$ p
+
+-- | @optional p@ tries to apply parser @p@ and discard the latter's result,
+-- or simply succeeds. Does not fail.
+optional :: Parser a -> Parser ()
+optional p = discard p <|> success
+
+-- | The parser @notFollowedBy p@ succeeds if there is no input left or if
+-- the next character does not satisfy predicate @p@. Consumes no input.
 notFollowedBy :: (Char -> Bool) -> Parser ()
 notFollowedBy p = do
     maybeChar <- peekChar
@@ -58,12 +58,17 @@ notFollowedBy p = do
 countOrMore :: Int -> Parser a -> Parser [a]
 countOrMore n p = count n p <++> many p
 
+-- | Plain old '(++)' lifted to applicative functors.
+infixr 5 <++>
+(<++>) :: (Applicative f) => f [a] -> f [a] -> f [a]
+(<++>) = liftA2 (++)
+
 -- | @takeWhileLo f lo@ consumes @lo@ characters or more as long as
 -- predicate @f@ returns 'True', and returns the consumed input.
 --
--- This parser requires the predicate to succeed on at least @lo@
--- characters of input: it will fail if the predicate never returns
--- 'True' or if there is no input left.
+-- Requires the predicate to succeed on at least @lo@ characters of input.
+-- Fails if the predicate never returns 'True' or if the end of the input
+-- has been reached.
 takeWhileLo :: (Char -> Bool) -> Int -> Parser Text
 takeWhileLo f lo =
     takeWhile f >>= \t ->
@@ -72,16 +77,11 @@ takeWhileLo f lo =
         EQ -> return t
         GT -> return t
 
--- | @takeWhileHi f hi@ consumes up to @hi@ characters as long as
--- predicate @f@ returns 'True', and returns the consumed input.
+-- | @takeWhileHi f hi@ consumes up to @hi@ characters as long as predicate
+-- @f@ returns 'True', and returns the consumed input.
 --
--- This parser does not fail. It will return an empty string if the predicate
--- returns 'False' on the first character of input.
-
--- (Adapted from @Cheapskate.Combinators.upToCountChars@)
---
--- FIXME: returns a continuation if fed 'hi' characters that satisfy the
--- predicate... why?
+-- Does not fail. Returns an empty string if the predicate returns 'False' on
+-- the first character of input.
 takeWhileHi :: (Char -> Bool) -> Int -> Parser Text
 takeWhileHi f hi =
     scan 0 $ \n c -> if n < hi && f c
@@ -91,12 +91,13 @@ takeWhileHi f hi =
 -- | @takeWhileLoHi f lo hi@ consumes from @lo@ to @hi@ characters as long as
 -- predicate @f@ returns 'True', and returns the consumed input.
 --
--- This parser requires the predicate to succeed on at least @lo@
--- characters of input: it will fail if the predicate never returns
--- 'True' or if there is no input left.
+-- Requires the predicate to succeed on at least @lo@ characters of input.
+-- Fails if the predicate never returns 'True' or if the end of the input
+-- has been reached.
 takeWhileLoHi :: (Char -> Bool) -> Int -> Int -> Parser Text
 takeWhileLoHi f lo hi =
     takeWhileHi f hi >>= \t ->
     case T.compareLength t lo of
         LT -> failure
-        _  -> return t
+        EQ -> return t
+        GT -> return t
