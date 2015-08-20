@@ -1,4 +1,4 @@
--- | Some convenient parsing combinators
+-- | Some parsing combinators extending attoparsec's built-in ones.
 
 module CommonMark.Util.Combinators
     ( discard
@@ -11,10 +11,11 @@ module CommonMark.Util.Combinators
     , takeWhileLoHi
     ) where
 
-import Prelude hiding ( takeWhile )
 import Control.Applicative hiding ( (<|>) )
 import Data.Text ( Text )
 import qualified Data.Text as T
+import Prelude hiding ( takeWhile )
+
 import Data.Attoparsec.Text
 
 -- | Plain old '(++)' lifted to applicative functors.
