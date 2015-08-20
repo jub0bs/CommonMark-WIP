@@ -49,13 +49,6 @@ processLines t = ts
   where Right ts = parseOnly lines t -- (lines never fails)
 
 
--- | @discard p@ applies action @p@ but discards its result.
-discard :: Parser a -> Parser ()
-discard p = () <$ p
-
--- | Plain old '(++)' lifted to applicative functors.
-(<++>) :: (Applicative f) => f [a] -> f [a] -> f [a]
-(<++>) = liftA2 (++)
 
 -- Whitespace / scanner
 --

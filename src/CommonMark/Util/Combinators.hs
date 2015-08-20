@@ -1,7 +1,8 @@
 -- | Some convenient parsing combinators
 
 module CommonMark.Util.Combinators
-    ( failure
+    ( discard
+    , failure
     , success
     , notFollowedBy
     , countOrMore
@@ -16,10 +17,14 @@ import Data.Text ( Text )
 import qualified Data.Text as T
 import Data.Attoparsec.Text
 
--- | "Lifted" version of @(++)@.
+-- | Plain old '(++)' lifted to applicative functors.
 infixr 5 <++>
 (<++>) :: (Applicative f) => f [a] -> f [a] -> f [a]
 (<++>) = liftA2 (++)
+
+-- | @discard p@ applies action @p@ but discards its result.
+discard :: Parser a -> Parser ()
+discard p = () <$ p
 
 -- | @failure@ is a parser that always fails.
 failure :: Parser a
