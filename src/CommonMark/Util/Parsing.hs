@@ -12,7 +12,7 @@ module CommonMark.Util.Parsing
     , notFollowedBy
     , countOrMore
 
-    -- * Count-based 'Text' parsers
+    -- * Predicate/count parsers
     , takeWhileLo
     , takeWhileHi
     , takeWhileLoHi
