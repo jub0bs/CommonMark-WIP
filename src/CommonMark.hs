@@ -5,7 +5,7 @@ import Prelude hiding ( lines )
 import Data.Attoparsec.Text ( parseTest, parseOnly )-- temporary
 
 import CommonMark.Types
-import CommonMark.Parser
-import CommonMark.Inlines
+import CommonMark.FrontEnd.Blocks
+import CommonMark.FrontEnd.Inlines
 import CommonMark.Util
--- import CommonMark.Html
+-- import CommonMark.BackEnd.Html

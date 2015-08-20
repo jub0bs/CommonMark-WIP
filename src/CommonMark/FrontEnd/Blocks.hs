@@ -3,7 +3,7 @@
 -- | Note: all parsers, aside from @lines@, are intended to operate on
 -- on a single line of input.
 
-module CommonMark.Parser
+module CommonMark.FrontEnd.Blocks
     ( commonmark
     , endOfLine
     , line
@@ -28,9 +28,9 @@ import qualified Data.Text as T
 
 import Data.Attoparsec.Text hiding ( endOfLine )
 
-import CommonMark.Util
 import CommonMark.Types
-import CommonMark.Combinators
+import CommonMark.Util.Misc
+import CommonMark.Util.Combinators
 
 commonmark :: Text -> [Text] -- FIXME
 commonmark = map detab . processLines

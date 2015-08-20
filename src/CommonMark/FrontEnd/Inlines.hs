@@ -2,7 +2,7 @@
 
 {-# LANGUAGE OverloadedStrings #-}
 
-module CommonMark.Inlines
+module CommonMark.FrontEnd.Inlines
     ( escapedChar
     , entity
     , codeSpan
@@ -27,11 +27,11 @@ import Data.Sequence as S
 
 import Data.Attoparsec.Text hiding ( endOfLine )
 
-import CommonMark.Util
 import CommonMark.Types
-import CommonMark.Combinators
-import CommonMark.HtmlEntities ( entityText )
-import CommonMark.Schemes ( isValidScheme )
+import CommonMark.Util.Combinators
+import CommonMark.Util.Entities ( entityText )
+import CommonMark.Util.Misc
+import CommonMark.Util.Schemes ( isValidScheme )
 
 -- Escaped characters
 

@@ -1,4 +1,4 @@
-module CommonMark.Util
+module CommonMark.Util.Misc
     ( (<++>)
     , isEndOfLineChar
     , isAsciiAlphaNum

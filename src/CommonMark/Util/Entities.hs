@@ -3,7 +3,7 @@
 -- | Html5 named entities.
 -- Based on https://html.spec.whatwg.org/multipage/entities.json.
 
-module CommonMark.HtmlEntities
+module CommonMark.Util.Entities
     ( entityMap
     , entityText
     ) where

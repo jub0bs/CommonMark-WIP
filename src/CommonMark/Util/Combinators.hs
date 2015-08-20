@@ -1,6 +1,6 @@
 -- | Some convenient parsing combinators
 
-module CommonMark.Combinators
+module CommonMark.Util.Combinators
     ( failure
     , success
     , notFollowedBy

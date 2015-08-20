@@ -1,6 +1,8 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 -- | URI schemes.
 
-module CommonMark.Schemes
+module CommonMark.Util.Schemes
     ( isValidScheme
     ) where
 
