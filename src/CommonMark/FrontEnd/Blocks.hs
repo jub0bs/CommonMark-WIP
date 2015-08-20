@@ -26,8 +26,8 @@ import qualified Data.Text as T
 import Data.Attoparsec.Text hiding ( endOfLine )
 
 import CommonMark.Types
-import CommonMark.Util.Combinators
 import CommonMark.Util.Char
+import CommonMark.Util.Parsing
 import CommonMark.Util.Text
 
 commonmark :: Text -> [Text] -- FIXME

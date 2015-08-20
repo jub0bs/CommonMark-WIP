@@ -10,25 +10,19 @@ module CommonMark.FrontEnd.Inlines
     ) where
 
 import Control.Applicative ( (<|>) )
-import Data.Bits ( (.|.)
-                 , shiftL
-                 )
-import Data.Char ( chr
-                 , isDigit
-                 , isHexDigit
-                 , ord
-                 )
+import Data.Bits ( (.|.), shiftL )
+import Data.Char ( chr, isDigit, isHexDigit, ord )
 import qualified Data.Sequence as S
 import Data.Text ( Text )
-import qualified Data.Text     as T
+import qualified Data.Text as T
 import Prelude hiding ( takeWhile )
 
 import Data.Attoparsec.Text hiding ( endOfLine )
 
 import CommonMark.Types
 import CommonMark.Util.Char
-import CommonMark.Util.Combinators
 import CommonMark.Util.Entities ( entityText )
+import CommonMark.Util.Parsing
 import CommonMark.Util.Schemes ( isValidScheme )
 import CommonMark.Util.Text
 

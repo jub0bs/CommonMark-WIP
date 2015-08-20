@@ -1,6 +1,6 @@
 -- | Some parsing combinators extending attoparsec's built-in ones.
 
-module CommonMark.Util.Combinators
+module CommonMark.Util.Parsing
     ( discard
     , failure
     , success
