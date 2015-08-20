@@ -4,6 +4,7 @@ module CommonMark.Util.Combinators
     ( discard
     , failure
     , success
+    , optional
     , notFollowedBy
     , countOrMore
     , takeWhileLo
@@ -11,7 +12,7 @@ module CommonMark.Util.Combinators
     , takeWhileLoHi
     ) where
 
-import Control.Applicative hiding ( (<|>) )
+import Control.Applicative ( Applicative, (<|>), liftA2, many )
 import Data.Text ( Text )
 import qualified Data.Text as T
 import Prelude hiding ( takeWhile )
@@ -22,6 +23,11 @@ import Data.Attoparsec.Text
 infixr 5 <++>
 (<++>) :: (Applicative f) => f [a] -> f [a] -> f [a]
 (<++>) = liftA2 (++)
+
+-- | @optional p@ tries to apply parser @p@. Parses @p@ (and discards the
+-- latter's  result) or nothing. Does not fail.
+optional :: Parser a -> Parser ()
+optional p = discard p <|> success
 
 -- | @discard p@ applies action @p@ but discards its result.
 discard :: Parser a -> Parser ()
