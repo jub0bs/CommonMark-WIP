@@ -1,22 +1,25 @@
 {-# LANGUAGE OverloadedStrings #-}
 
--- | URI schemes.
-
+-- | This module deals with URI schemes that are valid in CommonMark
+-- autolinks. See <http://spec.commonmark.org/0.21/#scheme> for a list of
+-- valid schemes.
 module CommonMark.Util.Schemes
-    ( isValidScheme
+    (
+    -- * Validity checking
+      isValidScheme
     ) where
 
-import Data.Char ( toLower )
+import Data.Char ( isAscii, toLower )
 import Data.Set ( Set )
 import qualified Data.Set as S
 import Data.Text ( Text )
 import qualified Data.Text as T
 
--- | Self-explanatory.
+-- | Checks whether the its argument is a valid URI scheme.
 isValidScheme :: Text -> Bool
-isValidScheme t = T.map toLower t `S.member` schemes
+isValidScheme t = T.all isAscii t && T.map toLower t `S.member` schemes
 
--- | Valid schemes for autolinks.
+-- | The set of all valid lowercase URI schems.
 schemes :: Set Text
 schemes = S.fromList
     [ "coap", "doi", "javascript"
