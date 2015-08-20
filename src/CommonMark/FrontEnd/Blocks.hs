@@ -86,10 +86,11 @@ whitespace = discard $ takeWhile isWhitespaceChar
 
 -- | Skip a CommonMark line ending.
 endOfLine :: Parser ()
-endOfLine =
-        discard (string "\r\n")
-    <|> discard (char '\r')
-    <|> discard (char '\n')
+endOfLine = discard $ choice
+    [ string "\r\n"
+    , string "\r"
+    , string "\n"
+    ]
 
 -- | TODO
 line :: Parser Text
