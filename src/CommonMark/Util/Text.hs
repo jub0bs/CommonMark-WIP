@@ -1,10 +1,15 @@
+-- | This module provides functions for processing 'Text' values.
 module CommonMark.Util.Text
-    ( stripAsciiSpaces
+    (
+    -- * Tab and NUL replacement
+      replaceNullChars
+    , detab
+    -- * Whitespace
+    , stripAsciiSpaces
     , stripAsciiSpacesAndNewlines
     , collapseWhitespace
+    -- * ATX headers
     , stripATXSuffix
-    , detab
-    , replaceNullChars
     ) where
 
 import Data.Text ( Text )
@@ -12,11 +17,30 @@ import qualified Data.Text as T
 
 import Data.CharSet ( CharSet )
 import qualified Data.CharSet                  as CS
-import qualified Data.CharSet.Unicode.Category as CS ( punctuation
-                                                     , space
-                                                     )
+import qualified Data.CharSet.Unicode.Category as CS ( punctuation, space )
 
 import CommonMark.Util.Char ( isWhitespace, replacementChar )
+
+-- | Replace null characters (U+0000) with the replacement character (U+FFFD).
+replaceNullChars :: Text -> Text
+replaceNullChars = T.map replaceNUL
+  where
+    replaceNUL c
+        |  c == '\NUL' = replacementChar
+        | otherwise    = c
+
+-- | Converts tabs to spaces using a 4-space tab stop. Intended to operate on
+-- a single line of input.
+detab :: Text -> Text
+detab = T.concat . pad . T.split (== '\t')
+  where
+    pad []               = []
+    pad [t]              = [t]
+    pad (t : ts@(_ : _)) = T.justifyLeft n ' ' t : pad ts
+      where
+          tl   = T.length t
+          n    = tl - (tl `rem` tabw) + tabw
+          tabw = 4
 
 -- | Remove leading and trailing ASCII spaces from a string.
 stripAsciiSpaces :: Text -> Text
@@ -32,6 +56,7 @@ collapseWhitespace = T.intercalate (T.singleton ' ') . codeSpanWords
 
 -- | Breaks a 'Text' up into a list of words, delimited by 'Char's
 -- representing whitespace (as defined by the CommonMark spec).
+-- Similar but different from 'Data.Text.words'.
 codeSpanWords :: Text -> [Text]
 codeSpanWords = go
   where
@@ -41,7 +66,7 @@ codeSpanWords = go
                            T.dropWhile isWhitespace t
 {-# INLINE codeSpanWords #-}
 
--- | @stripATXSuffix t@ strips an ATX-header suffix (if any) from @t@.
+-- | @stripATXSuffix t@ strips @t@ from its ATX-header suffix (if any).
 stripATXSuffix :: Text -> Text
 stripATXSuffix t
     | T.null t'              = t
@@ -50,28 +75,3 @@ stripATXSuffix t
   where
     t' = T.dropWhileEnd (== '#') .
          T.dropWhileEnd (== ' ') $ t
-
--- Convert tabs to spaces using a 4-space tab stop.
--- Intended to operate on a single line of input.
--- (adapted from jgm's Cheapstake.Util)
-detab :: Text -> Text
-detab = T.concat . pad . T.split (== '\t')
-  where
-    -- pad :: [Text] -> [Text]
-    pad []               = []
-    pad [t]              = [t]
-    pad (t : ts@(_ : _)) =
-        let
-          tabw = 4  -- tabstop
-          tl   = T.length t
-          n    = tl - (tl `rem` tabw) + tabw  {- smallest multiple of
-                                                 tabw greater than tl -}
-        in T.justifyLeft n ' ' t : pad ts
-
--- Replace null characters (U+0000) with the replacement character (U+FFFD).
-replaceNullChars :: Text -> Text
-replaceNullChars = T.map replaceNUL
-  where
-    replaceNUL c
-        |  c == '\NUL' = replacementChar
-        | otherwise    = c
