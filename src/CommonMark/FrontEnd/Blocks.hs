@@ -1,141 +1,117 @@
 {-# LANGUAGE OverloadedStrings #-}
 
--- | Note: all parsers, aside from @lines@, are intended to operate on
--- on a single line of input.
-
+-- | This module provides parsers for determining the block structure
+-- of a CommonMark document (phase 1).
+-- See <http://spec.commonmark.org/0.21/#container-blocks-and-leaf-blocks>
+-- for more details.
+--
+-- Note: all parsers, unless specified otherwise,  are intended to operate on
+-- a single line of input.
 module CommonMark.FrontEnd.Blocks
-    ( commonmark
-    , endOfLine
-    , line
-    , hRule
-    , atxHeaderLevel
+    (
+    -- * Leaf parsers
+      hRule
     , atxHeader
     , setextHeaderUnderLine
     , openingCodeFence
     , closingCodeFence
-    , blockQuoteMarker
-    , infoString
+
+    -- * Node parsers
     ) where
 
-
 import Control.Applicative ( (<|>), liftA2 )
-import Prelude hiding ( lines, takeWhile )
 import Data.Text ( Text )
 import qualified Data.Text as T
+import Prelude hiding ( lines )
 
-import Data.Attoparsec.Text hiding ( endOfLine )
+import Data.Attoparsec.Text ( Parser, (<?>) )
+import qualified Data.Attoparsec.Text as A
 
-import CommonMark.Types
 import CommonMark.Util.Char
 import CommonMark.Util.Parsing
 import CommonMark.Util.Text
+import CommonMark.Types
 
-commonmark :: Text -> [Text] -- FIXME
-commonmark = map detab . processLines
+-- | Parses the lines of input.
+lines :: Parser [Text]
+lines = line `A.sepBy` endOfLine
 
+-- | Parses a line of input.
+line :: Parser Text
+line = A.takeTill A.isEndOfLine
 
--- | Types for intermediate representation
+-- | Skips a CommonMark line-ending sequence.
+endOfLine :: Parser ()
+endOfLine = discard $ A.choice
+    [ A.string "\r\n"
+    , A.string "\r"
+    , A.string "\n"
+    ]
 
+-- | A node (container) of the intermediate representation.
+-- FIXME
+-- data Node =
+
+-- | A leaf of the intermediate syntax tree.
 data Leaf = TextLine !Text
           | BlankLine !Text
-          | ATXHeader !Int !Text
-          | SetextHeader !Int !Text
+          | ATXHeader {-# UNPACK #-} !Int !Text
+          | SetextHeader {-# UNPACK #-} !Int !Text
           | Rule
           deriving (Show)
 
--- temporary
-processLines :: Text -> [Text]
-processLines t = ts
-  where Right ts = parseOnly lines t -- (lines never fails)
-
-
-
--- Whitespace / scanner
---
--- | Parse an ASCII space character.
-asciiSpace :: Parser Char
-asciiSpace = char ' '
-
-
--- | Skip /one/ ASCII space character.
+-- | Skips one ASCII space character.
 skipAsciiSpace :: Parser ()
-skipAsciiSpace = discard asciiSpace
+skipAsciiSpace = discard $ A.char ' '
 
--- | Skip /zero/ or more ASCII space characters.
+-- | Skips zero or more ASCII space characters.
 skipAsciiSpaces :: Parser ()
-skipAsciiSpaces = discard $ takeWhile (== ' ')
+skipAsciiSpaces = discard $ A.takeWhile (== ' ')
 
--- | Skip /one/ or more ASCII space characters.
+-- | Skips one or more ASCII space characters.
 skipAsciiSpaces1 :: Parser ()
-skipAsciiSpaces1 = discard $ takeWhile1 (== ' ')
+skipAsciiSpaces1 = discard $ A.takeWhile1 (== ' ')
 
+-- | Parses zero to three ASCII spaces characters, and returns the number
+-- of such characters it has parsed.
 asciiSpaces0to3 :: Parser Int
 asciiSpaces0to3 = T.length <$> takeWhileHi (== ' ') 3
 
-
--- | Skip between /zero/ and /three/ ASCII space characters.
+-- | Skips zero to three ASCII space characters.
 skipAsciiSpaces0to3 :: Parser ()
 skipAsciiSpaces0to3 = discard asciiSpaces0to3
 
+-- | Skips non-indent spaces.
 skipNonIndentSpace :: Parser ()
 skipNonIndentSpace = skipAsciiSpaces0to3
 
--- | Skip /zero/ or more whitespace characters.
+-- | Skips zero or more whitespace characters.
 whitespace :: Parser ()
-whitespace = discard $ takeWhile isWhitespace
+whitespace = discard $ A.takeWhile isWhitespace
 
--- | Skip a CommonMark line ending.
-endOfLine :: Parser ()
-endOfLine = discard $ choice
-    [ string "\r\n"
-    , string "\r"
-    , string "\n"
-    ]
-
--- | TODO
-line :: Parser Text
-line = takeTill isEndOfLine
-
--- |
-lines :: Parser [Text]
-lines = line `sepBy` endOfLine
-
-
--- Leaf parsers
-
--- 4.1 - Horizontal rules
-
--- | Parse a horizontal rule.
+-- | Parses a horizontal rule.
 hRule :: Parser Leaf
-hRule = Rule
-    <$  skipNonIndentSpace
-    <*  (choice . map hRuleSequence) hRuleChars
-    <*  endOfInput
-    <?> "horizontal rule"
+hRule = Rule <$  skipNonIndentSpace
+             <*  (A.choice . map hRuleSequence) hRuleChars
+             <*  A.endOfInput
+             <?> "horizontal rule"
   where
-    hRuleSequence c = countOrMore 3 (char c <* skipAsciiSpaces)
+    hRuleSequence c = countOrMore 3 (A.char c <* skipAsciiSpaces)
     hRuleChars      = "*-_"
 
-
--- 4.2 - ATX headers
-
--- | Parse an ATX header.
+-- | Parses an ATX header.
 atxHeader :: Parser Leaf
-atxHeader =
-        ATXHeader
-    <$> atxHeaderLevel
-    <*> atxHeaderRawContents
-    <?> "ATX header"
+atxHeader = ATXHeader <$> atxHeaderLevel
+                      <*> atxHeaderRawContents
+                      <?> "ATX header"
 
--- | Parse the opening sequence of #s of an ATX header and return the header
+-- | Parses the opening sequence of #s of an ATX header and return the header
 -- level.
 atxHeaderLevel :: Parser Int
-atxHeaderLevel =
-        T.length
-    <$> atxHeaderPrefix
-    <?> "ATX-header level"
+atxHeaderLevel = T.length <$> atxHeaderPrefix
+                          <?> "ATX-header level"
 
--- | Parse the opening sequence of #s of an ATX header.
+-- | Parses the opening sequence of hash signs of an ATX header.
 atxHeaderPrefix :: Parser Text
 atxHeaderPrefix =
        skipNonIndentSpace
@@ -146,38 +122,30 @@ atxHeaderPrefix =
 -- | Parse the raw contents of an ATX header.
 atxHeaderRawContents :: Parser Text
 atxHeaderRawContents =
-        stripAsciiSpaces . stripATXSuffix
-    <$> takeText
-    <?> "ATX-header raw contents"
+    stripAsciiSpaces . stripATXSuffix <$> A.takeText
+                                      <?> "ATX-header raw contents"
 
-
---- 4.3 - Setext headers
-
--- | Parse a setext-header underline and return the header level.
+-- | Parses a setext-header underline, and returns the header level.
 setextHeaderUnderLine :: Parser Int
 setextHeaderUnderLine =
         skipNonIndentSpace
      *> setextHeaderLevel
     <*  skipAsciiSpaces
-    <*  endOfInput
+    <*  A.endOfInput
     <?> "setext-header underline"
 
--- | Parse the sequence of = or - characters of a setext-header underline
+-- | Parses the sequence of = or - characters of a setext-header underline
 -- and return the header level.
 setextHeaderLevel :: Parser Int
-setextHeaderLevel =
-        1 <$ takeWhile1 (== '=')
-    <|> 2 <$ takeWhile1 (== '-')
-    <?> "setext-header level"
+setextHeaderLevel =     1 <$ A.takeWhile1 (== '=')
+                    <|> 2 <$ A.takeWhile1 (== '-')
+                    <?> "setext-header level"
 
-
--- Fenced code blocks
-
-data FenceType = FenceType Char
+-- | A fence type (backtick or tilde).
+newtype FenceType = FenceType Char
     deriving (Show, Eq)
 
--- | Parse a code-fence sequence (three or more backticks, or three of more
--- tildes)
+-- | Parses a code-fence sequence.
 codeFence :: Parser (FenceType, Int)
 codeFence = go '`' <|> go '~'
   where
@@ -185,18 +153,15 @@ codeFence = go '`' <|> go '~'
         n <- T.length <$> takeWhileLo (== c) 3
         return (FenceType c, n)
 
--- | Parse the info string of a code fence.
-infoString :: Parser Text
-infoString =
-        stripAsciiSpaces
-    <$> takeWhile (/= '`')
-    <*  endOfInput
+-- | Parses the info string of a code fence.
+infoString :: Parser InfoString
+infoString = stripAsciiSpaces <$> A.takeWhile (/= '`')
+                              <*  A.endOfInput
 
--- | Parse an opening code fence and return TODO
--- TODO: return indentation
---              FenceType
---              number of chars in code fence
---              infostring
+-- FIXME: return indentation
+--               FenceType
+--               number of chars in code fence
+--               infostring
 openingCodeFence :: Parser Text
 openingCodeFence = do
     lvl <- asciiSpaces0to3
@@ -204,10 +169,7 @@ openingCodeFence = do
     t <- infoString
     return t
 
--- | Parse a closing code fence and return TODO
--- Intended to operate on a single line of input.
--- TODO: return FenceType
---              number of chars in code fence
+-- FIXME
 closingCodeFence :: FenceType -> Int -> Parser ()
 closingCodeFence fencetype n = do
     skipNonIndentSpace
@@ -216,28 +178,19 @@ closingCodeFence fencetype n = do
     then failure
     else do
         skipAsciiSpaces
-        endOfInput
+        A.endOfInput
         return ()
 
--- lump those two together for efficiency
+-- | Parses a 'TextLine' or 'BlankLine'.
 textOrBlankLine :: Parser Leaf
-textOrBlankLine = textOrBlank <$> takeText
+textOrBlankLine = textOrBlank <$> A.takeText
   where
     textOrBlank t
         | T.all (\c -> c == ' ' || c == '\t') t = BlankLine t
         | otherwise                             = TextLine t
 
-
+-- | Parses a blockquote marker.
 blockQuoteMarker :: Parser ()
-blockQuoteMarker =
-    skipNonIndentSpace
-    *> char '>'
-    *> option () skipAsciiSpace
-
-
---- inlines
-
-hardLineBreak :: Parser ()
-hardLineBreak = ()
-    <$ char '\\'
-    <* endOfInput
+blockQuoteMarker =    skipNonIndentSpace
+                   *> A.char '>'
+                   *> optional skipAsciiSpace
