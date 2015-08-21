@@ -41,9 +41,9 @@ import Data.Text ( Text )
 import Data.Attoparsec.Text ( Parser )
 import qualified Data.Attoparsec.Text as A
 
--- import CommonMark.BackEnd.Html
-import CommonMark.FrontEnd.Blocks
-import CommonMark.FrontEnd.Inlines
+import CommonMark.Parser.Blocks
+import CommonMark.Parser.Inlines
+-- import CommonMark.Renderer.Html
 import CommonMark.Types
 import CommonMark.Util.Parsing
 

@@ -8,10 +8,8 @@ import qualified Data.Map as M
 -- import qualified Data.Map.Strict as M
 import Data.Text ( Text )
 
-
 -- | Root of the document's AST
--- ParsingOptions are included here so that we know how a Doc was obtained.
-data Doc = Doc ParsingOptions Blocks
+data Doc = Doc Blocks
   deriving (Show)
 
 -- | Block-level element
@@ -74,15 +72,3 @@ type Inlines = Seq Inline
 
 -- | Map of link references
 type RefMap = M.Map Label (Destination, Maybe Title)
-
-
--- | Parsing options
--- (Note: rendering options should go with the renderer, not here)
-
-data ParsingOptions = ParsingOptions
-    { option1 :: !Bool -- placeholder
-    , option2 :: !Bool -- placeholder
-    } deriving (Show)
-
-instance Default ParsingOptions where
-    def = ParsingOptions True True

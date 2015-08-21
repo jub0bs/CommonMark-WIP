@@ -7,7 +7,7 @@
 --
 -- Note: all parsers, unless specified otherwise,  are intended to operate on
 -- a single line of input.
-module CommonMark.FrontEnd.Blocks
+module CommonMark.Parser.Blocks
     (
     -- * Leaf parsers
       hRule

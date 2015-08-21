@@ -2,7 +2,7 @@
 
 -- | This module provides parsers for /inline/ CommonMark content.
 -- See <http://spec.commonmark.org/0.21/#inlines> for more details.
-module CommonMark.FrontEnd.Inlines
+module CommonMark.Parser.Inlines
     (
     -- * Backslash escapes
       escapedChar

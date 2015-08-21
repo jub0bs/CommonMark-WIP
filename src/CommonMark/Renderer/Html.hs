@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module CommonMark.BackEnd.Html
+module CommonMark.Renderer.Html
     ( def
     , renderBlock
     , renderDoc
