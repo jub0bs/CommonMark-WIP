@@ -29,7 +29,8 @@ import Data.Text ( Text )
 import qualified Data.Text as T
 import Prelude hiding ( takeWhile )
 
-import Data.Attoparsec.Text as A
+import Data.Attoparsec.Text ( Parser )
+import qualified Data.Attoparsec.Text as A
 
 import CommonMark.Types
 import CommonMark.Util.Char
@@ -62,7 +63,7 @@ namedEntity = do
 -- character.
 numericEntity :: Parser Inline
 numericEntity = do
-    n <- char '#' *> value <*  semicolon
+    n <- A.char '#' *> value <*  semicolon
     return $ Entity $ T.singleton $
         if 0 < n && n <= 0x10FFFF
         then chr n
@@ -144,9 +145,9 @@ absoluteURI = do
 
 -- | Parses an email address.
 emailAddress :: Parser Text
-emailAddress =  T.concat <$> sequence [localPart, string "@", domain]
+emailAddress =  T.concat <$> sequence [localPart, A.string "@", domain]
   where
-    localPart = takeWhile1 (\c -> isAtext c || c == '.')
+    localPart = A.takeWhile1 (\c -> isAtext c || c == '.')
     domain    = T.intercalate "." <$> A.sepBy1 label (A.char '.')
     label     = do
         t <- takeWhileLoHi (\c -> isAsciiAlphaNum c || c == '-') 1 63
