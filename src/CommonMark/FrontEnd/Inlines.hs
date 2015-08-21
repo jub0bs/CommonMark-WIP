@@ -1,12 +1,24 @@
 {-# LANGUAGE OverloadedStrings #-}
 
--- | Parsers for inlines.
-
+-- | This module provides parsers for /inline/ CommonMark content.
+-- See <http://spec.commonmark.org/0.21/#inlines> for more details.
 module CommonMark.FrontEnd.Inlines
-    ( escapedChar
+    (
+    -- * Backslash escapes
+      escapedChar
+
+    -- * Entities
     , entity
+    , namedEntity
+    , numericEntity
+
+    -- * Code spans
     , codeSpan
+
+    -- * Autolinks
     , autolink
+    , absoluteURI
+    , emailAddress
     ) where
 
 import Control.Applicative ( (<|>) )
@@ -17,7 +29,7 @@ import Data.Text ( Text )
 import qualified Data.Text as T
 import Prelude hiding ( takeWhile )
 
-import Data.Attoparsec.Text hiding ( endOfLine )
+import Data.Attoparsec.Text as A
 
 import CommonMark.Types
 import CommonMark.Util.Char
@@ -26,55 +38,50 @@ import CommonMark.Util.Parsing
 import CommonMark.Util.Schemes ( isValidScheme )
 import CommonMark.Util.Text
 
--- Escaped characters
-
--- | Parse an escaped ASCII punctuation character.
+-- | Parses an escaped ASCII punctuation character.
 escapedChar :: Parser Inline
-escapedChar = Escaped <$> (char '\\' *> satisfy isAsciiPunctuation)
+escapedChar = Escaped <$> (A.char '\\' *> A.satisfy isAsciiPunctuation)
 
-
--- HTML entities
-
--- | Parse a HTML (named or numeric) entity.
+-- | Parses a HTML (named or numeric) entity.
 entity :: Parser Inline
-entity = char '&' *> (namedEntity <|> numericEntity)
+entity = A.char '&' *> (namedEntity <|> numericEntity)
 
--- | Parse a valid HTML5 named entity stripped of its leading ampersand.
+-- | Parses a valid HTML5 named entity stripped of its leading ampersand.
 namedEntity :: Parser Inline
 namedEntity = do
     t <- asciiWord <* semicolon
     case replaceEntity t of
         Nothing -> failure
-        Just t' -> return $! Entity t'
+        Just t' -> return $ Entity t'
   where
-    asciiWord = takeWhile1 isAsciiLetter
+    asciiWord = A.takeWhile1 isAsciiLetter
 
--- | Parse a numeric (decimal or hexadecimal) entity stripped of its leading
+-- | Parses a numeric (decimal or hexadecimal) entity stripped of its leading
 -- ampersand. If the integer value obtained is a valid nonzero codepoint,
 -- return the corresponding character; otherwise, return the replacement
 -- character.
 numericEntity :: Parser Inline
 numericEntity = do
     n <- char '#' *> value <*  semicolon
-    return $! Entity $ T.singleton $
+    return $ Entity $ T.singleton $
         if 0 < n && n <= 0x10FFFF
         then chr n
         else replacementChar
   where
     value = (xX *> hexadecimal1To8) <|> decimal1To8
-    xX    = satisfy (\c -> c == 'x' || c == 'X')
+    xX    = A.satisfy (\c -> c == 'x' || c == 'X')
 
--- | Parse a semicolon.
+-- | Parses a semicolon.
 semicolon :: Parser Char
-semicolon = char ';'
+semicolon = A.char ';'
 
--- | Parse an unsigned decimal integer composed of 1 to 8 digits.
+-- | Parses an unsigned decimal integer composed of 1 to 8 digits.
 -- Adapted from 'Data.Attoparsec.Text.decimal'.
 decimal1To8 :: Parser Int
 decimal1To8 = T.foldl' step 0 <$> takeWhileLoHi isDigit 1 8
   where step a c = a * 10 + fromIntegral (ord c - 48)
 
--- | Parse an unsigned hexadecimal integer composed of 1 to 8 digits.
+-- | Parses an unsigned hexadecimal integer composed of 1 to 8 digits.
 -- Adapted from 'Data.Attoparsec.Text.hexadecimal'.
 hexadecimal1To8 :: Parser Int
 hexadecimal1To8 = T.foldl' step 0 <$> takeWhileLoHi isHexDigit 1 8
@@ -85,78 +92,69 @@ hexadecimal1To8 = T.foldl' step 0 <$> takeWhileLoHi isHexDigit 1 8
       where
         w = ord c
 
-
--- Code spans
-
--- | Parse one or more backticks
+-- | Parses one or more backticks (U+0060).
 backticks1 :: Parser Text
-backticks1 = takeWhile1 (== '`')
+backticks1 = A.takeWhile1 (== '`')
 
--- | Adapted from 'Cheapskate.Inlines'.
+-- | Parses a code span.
 codeSpan :: Parser Inline
 codeSpan = do
     ticks <- backticks1
-    let end           = string ticks <* notFollowedBy (== '`')
-        nonBackticks1 = takeWhile1 (/= '`')
-    contents <- T.concat <$> manyTill (nonBackticks1 <|> backticks1) end
-    return $! CodeSpan
-           $  collapseWhitespace
-           $  stripAsciiSpacesAndNewlines contents
+    let end           = A.string ticks <* notFollowedBy (== '`')
+        nonBackticks1 = A.takeWhile1 (/= '`')
+    contents <- T.concat <$> A.manyTill (nonBackticks1 <|> backticks1) end
+    return $ CodeSpan
+           $ collapseWhitespace
+           $ stripAsciiSpacesAndNewlines contents
 
-
--- Emphasis and strong emphasis
-
--- | Delimiter run.
+-- | Parses a delimiter run.
 delimRun :: Parser Text
-delimRun = takeWhile1 (== '*') <|> takeWhile1 (== '_')
+delimRun = A.takeWhile1 (== '*') <|> A.takeWhile1 (== '_')
 
-
--- Autolinks
-
--- | Parse an autolink.
+-- | Parses an autolink.
 autolink :: Parser Inline
 autolink = do
-    char '<'
+    A.char '<'
     absoluteURI' <|> emailAddress'
   where
     absoluteURI' = do
         uri <- absoluteURI
-        char '>'
-        return $! Link (S.singleton $! Textual uri) uri Nothing
+        A.char '>'
+        return $ Link (S.singleton $ Textual uri) uri Nothing
     emailAddress' = do
         addr <- emailAddress
-        char '>'
-        return $! Link (S.singleton $! Textual addr)
-                       ("mailto:" `T.append` addr)
-                       Nothing
+        A.char '>'
+        return $ Link (S.singleton $ Textual addr)
+                      ("mailto:" `T.append` addr)
+                      Nothing
 
--- | Parse an absolute URI.
+-- | Parses an absolute URI.
 absoluteURI :: Parser Text
 absoluteURI = do
     schm <- candidateScheme
     if isValidScheme schm
     then do
-        char ':'
+        A.char ':'
         rest <- schemeSpecificPart
         return $! T.concat [schm, T.singleton ':', rest]
     else failure
   where
-    candidateScheme = takeWhile1 (\c -> isAsciiLetter c ||
-                                        isDigit c       ||
-                                        c == '-'        ||
-                                        c == '.'
-                                 )
-    schemeSpecificPart = takeWhile (\c -> c /= ' ' &&
-                                          c /= '<' &&
-                                          c /= '>'
+    candidateScheme = A.takeWhile1 (\c -> isAsciiLetter c ||
+                                          isDigit c       ||
+                                          c == '-'        ||
+                                          c == '.'
                                    )
+    schemeSpecificPart = A.takeWhile (\c -> c /= ' ' &&
+                                            c /= '<' &&
+                                            c /= '>'
+                                     )
 
--- | Parse an email address.
+-- | Parses an email address.
 emailAddress :: Parser Text
 emailAddress =  T.concat <$> sequence [localPart, string "@", domain]
   where
     localPart = takeWhile1 (\c -> isAtext c || c == '.')
-    domain    = T.intercalate "." <$> sepBy1 label (char '.')
+    domain    = T.intercalate "." <$> A.sepBy1 label (A.char '.')
     label     = do
         t <- takeWhileLoHi (\c -> isAsciiAlphaNum c || c == '-') 1 63
         if T.head t == '-' || T.last t == '-'
