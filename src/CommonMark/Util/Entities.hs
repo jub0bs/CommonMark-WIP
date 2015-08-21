@@ -1,19 +1,27 @@
 {-# LANGUAGE OverloadedStrings #-}
 
--- | Html5 named entities.
--- Based on https://html.spec.whatwg.org/multipage/entities.json.
-
+-- | This module deals with HTML5 named entities. This file was generated
+-- from and is meant to stay in sync with
+-- <https://html.spec.whatwg.org/multipage/entities.json>.
+--
+-- Terminology ote: an /entity name/ is an entity stripped of its leading
+-- ampersand and trailing semicolon.
 module CommonMark.Util.Entities
-    ( entityMap
-    , entityText
+    (
+    -- HTML entity replacement
+      replaceEntity
     ) where
 
 import qualified Data.HashMap.Lazy as HM
 import Data.Text ( Text )
 
-entityText :: Text -> Maybe Text
-entityText t = t `HM.lookup` entityMap
+-- | If @t@ is a valid entity name, @replaceEntity t@ returns @'Just' t'@,
+-- where @t'@ is the replacement text for the entity corresponding to name
+-- @t@; otherwise, it returns 'Nothing'.
+replaceEntity :: Text -> Maybe Text
+replaceEntity t = t `HM.lookup` entityMap
 
+-- | Map of valid HTML5 entity names.
 entityMap :: HM.HashMap Text Text
 entityMap = HM.fromList
     [ ("RightUpVector","\8638")

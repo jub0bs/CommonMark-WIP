@@ -21,7 +21,7 @@ import Data.Attoparsec.Text hiding ( endOfLine )
 
 import CommonMark.Types
 import CommonMark.Util.Char
-import CommonMark.Util.Entities ( entityText )
+import CommonMark.Util.Entities
 import CommonMark.Util.Parsing
 import CommonMark.Util.Schemes ( isValidScheme )
 import CommonMark.Util.Text
@@ -43,7 +43,7 @@ entity = char '&' *> (namedEntity <|> numericEntity)
 namedEntity :: Parser Inline
 namedEntity = do
     t <- asciiWord <* semicolon
-    case entityText t of
+    case replaceEntity t of
         Nothing -> failure
         Just t' -> return $! Entity t'
   where
