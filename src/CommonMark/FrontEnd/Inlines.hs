@@ -139,15 +139,8 @@ absoluteURI = do
         return $! T.concat [schm, T.singleton ':', rest]
     else failure
   where
-    candidateScheme = A.takeWhile1 (\c -> isAsciiLetter c ||
-                                          isDigit c       ||
-                                          c == '-'        ||
-                                          c == '.'
-                                   )
-    schemeSpecificPart = A.takeWhile (\c -> c /= ' ' &&
-                                            c /= '<' &&
-                                            c /= '>'
-                                     )
+    candidateScheme    = A.takeWhile1 isSchemeChar
+    schemeSpecificPart = A.takeWhile isSchemeSpecificChar
 
 -- | Parses an email address.
 emailAddress :: Parser Text

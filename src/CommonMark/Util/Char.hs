@@ -17,6 +17,10 @@ module CommonMark.Util.Char
     , isAsciiPunctuation
     , isPunctuation
 
+    -- * URI schemes
+    , isSchemeChar
+    , isSchemeSpecificChar
+
     -- * Email address
     , isAtext
     ) where
@@ -71,6 +75,15 @@ isPunctuation :: Char -> Bool
 isPunctuation =
     let charset = asciiPunctuation `CS.union` CS.punctuation
     in \c -> c `CS.member` charset
+
+-- | Selects characters that can occur in URI schemes.
+isSchemeChar :: Char -> Bool
+isSchemeChar c = isAsciiAlphaNum c || c == '-' || c == '.'
+
+-- | Selects characters that are can occur in the scheme-specific part of
+-- URIs.
+isSchemeSpecificChar :: Char -> Bool
+isSchemeSpecificChar c = c /= ' ' && c /= '<' && c /= '>'
 
 -- | Selects characters from the /atext/ production in the grammar of email
 -- addresses. See <http://spec.commonmark.org/0.21/#email-address> for more
