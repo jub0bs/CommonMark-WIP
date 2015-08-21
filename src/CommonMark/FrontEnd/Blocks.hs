@@ -140,7 +140,7 @@ atxHeaderPrefix :: Parser Text
 atxHeaderPrefix =
        skipNonIndentSpace
     *> takeWhileLoHi (== '#') 1 6
-   <*  notFollowedBy isNonSpaceChar
+   <*  notFollowedBy (not . isWhitespaceChar)
    <?> "ATX-header prefix"
 
 -- | Parse the raw contents of an ATX header.

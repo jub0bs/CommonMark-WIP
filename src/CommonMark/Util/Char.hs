@@ -1,89 +1,88 @@
--- | 'Char'-related entities.
-
+-- | This module provides useful character-related predicates and special
+-- characters.
 module CommonMark.Util.Char
-    ( isEndOfLineChar
+    (
+    -- * Special characters
+      nullChar
+    , replacementChar
+    -- * Basic predicates
+    , isAsciiLetter
     , isAsciiAlphaNum
+    , isEndOfLineChar
+    -- * Whitespace
     , isWhitespaceChar
     , isUnicodeWhitespaceChar
-    , isNonSpaceChar
+    -- Punctuation
     , isAsciiPunctuationChar
     , isPunctuationChar
+    -- * Email address
     , isAtextChar
-    , replacementChar
-    , isAsciiLetter
     ) where
 
-import           Data.Char                           ( isAlphaNum
-                                                     , isAscii
-                                                     , isLetter
-                                                     )
+import Data.Char ( isAlphaNum, isAscii, isLetter )
 
-import           Data.CharSet                        ( CharSet )
+import Data.CharSet ( CharSet )
 import qualified Data.CharSet                  as CS
-import qualified Data.CharSet.Unicode.Category as CS ( punctuation
-                                                     , space
-                                                     )
--- A line ending is a newline (U+000A), carriage return (U+000D), or carriage
--- return + newline.
-isEndOfLineChar :: Char -> Bool
-isEndOfLineChar c = c == '\n' || c == '\r'
+import qualified Data.CharSet.Unicode.Category as CS ( punctuation, space )
 
-isAsciiAlphaNum :: Char -> Bool
-isAsciiAlphaNum c = isAscii c && isAlphaNum c
+-- | The NUL character (U+0000).
+nullChar :: Char
+nullChar = '\x0'
 
--- A whitespace character is a space (U+0020), tab (U+0009), newline (U+000A),
--- line tabulation (U+000B), form feed (U+000C), or carriage return (U+000D).
-isWhitespaceChar :: Char -> Bool
-isWhitespaceChar c =    c == ' '
-                     || c == '\t'
-                     || c == '\n'
-                     || c == '\v'
-                     || c == '\f'
-                     || c == '\r'
-
--- A unicode whitespace character is any code point in the unicode Zs class,
--- or a tab (U+0009), carriage return (U+000D), newline (U+000A), or form feed
--- (U+000C).
--- (See http://www.unicode.org/Public/UNIDATA/UnicodeData.txt for details.)
-isUnicodeWhitespaceChar :: Char -> Bool
-isUnicodeWhitespaceChar c = c `CS.member` unicodeWhitespaceCharSet
-
--- The set of unicode whitespace characters.
-unicodeWhitespaceCharSet :: CharSet
-unicodeWhitespaceCharSet =
-    CS.space `CS.union` CS.fromList "\t\r\n\f"
-
--- A non-space character is any character that is not a whitespace character.
-isNonSpaceChar :: Char -> Bool
-isNonSpaceChar = not . isWhitespaceChar
-
--- An ASCII punctuation character is !, ", #, $, %, &, ', (, ), *, +, ,, -, .,
--- /, :, ;, <, =, >, ?, @, [, \, ], ^, _, `, {, |, }, or ~.
-isAsciiPunctuationChar :: Char -> Bool
-isAsciiPunctuationChar c =
-    c `CS.member` asciiPunctuationCharSet
-
-asciiPunctuationCharSet :: CharSet
-asciiPunctuationCharSet =
-    CS.fromList "!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~"
-
--- A punctuation character is an ASCII punctuation character or anything in
--- the unicode classes Pc, Pd, Pe, Pf, Pi, Po, or Ps.
--- Note: Data.CharSet.punctuation contains "!\"#%&'()*,-./:;?@[\\]_{}".
-isPunctuationChar :: Char -> Bool
-isPunctuationChar c =
-       c `CS.member` CS.fromList "$+<=>^`|~"
-    || c `CS.member` CS.punctuation
-
--- | TODO
-isAtextChar :: Char -> Bool
-isAtextChar = let charset = CS.fromList "!#$%&'*+\\/=?^_`{|}~-" in
-    \c -> isAsciiAlphaNum c || c `CS.member` charset
-
--- | The replacement character (i.e. the character of codepoint 0xFFFD).
+-- | The replacement character (U+FFFD).
 replacementChar :: Char
 replacementChar = '\xFFFD'
 
--- | Self-explanatory.
+-- | Selects alphabetic ASCII characters.
 isAsciiLetter :: Char -> Bool
 isAsciiLetter c = isAscii c && isLetter c
+
+-- | Selects alphanumeric ASCII characters.
+isAsciiAlphaNum :: Char -> Bool
+isAsciiAlphaNum c = isAscii c && isAlphaNum c
+
+-- | Selects end-of-line characters: newline (U+000A), carriage return
+-- (U+000D).
+isEndOfLineChar :: Char -> Bool
+isEndOfLineChar c = c == '\n' || c == '\r'
+
+-- | Selects ASCII whitespace characters: space (U+0020), tab (U+0009),
+-- newline (U+000A), line tabulation (U+000B), form feed (U+000C), carriage
+-- return (U+000D).
+isWhitespaceChar :: Char -> Bool
+isWhitespaceChar =
+    let charset = CS.fromList " \t\n\v\f\r"
+    in \c -> c `CS.member` charset
+
+-- | Selects Unicode whitespace character: any code point in the Zs class,
+-- tab (U+0009), carriage return (U+000D), newline (U+000A), form feed
+-- (U+000C).
+isUnicodeWhitespaceChar :: Char -> Bool
+isUnicodeWhitespaceChar =
+    let charset = CS.space `CS.union` CS.fromList "\t\r\n\f"
+    in \c -> c `CS.member` charset
+
+-- | Selects an ASCII punctuation character.
+isAsciiPunctuationChar :: Char -> Bool
+isAsciiPunctuationChar c = c `CS.member` asciiPunctuation
+
+-- | The set of ASCII punctuation characters.
+-- See <http://spec.commonmark.org/0.21/#ascii-punctuation-character> for
+-- details.
+asciiPunctuation :: CharSet
+asciiPunctuation = CS.fromList "!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~"
+
+-- | Selects a punctuation character: ASCII punctuation characters, or
+-- anything in the Unicode classes Pc, Pd, Pe, Pf, Pi, Po, or Ps.
+isPunctuationChar :: Char -> Bool
+isPunctuationChar =
+    let charset = asciiPunctuation `CS.union` CS.punctuation
+    in \c -> c `CS.member` charset
+
+-- | Selects characters from the _atext_ production in the grammar of email
+-- addresses. See <http://spec.commonmark.org/0.21/#email-address> for more
+-- details.
+isAtextChar :: Char -> Bool
+isAtextChar =
+    let charset = CS.fromList "!#$%&'*+\\/=?^_`{|}~-"
+    in \c -> isAsciiAlphaNum c || c `CS.member` charset
