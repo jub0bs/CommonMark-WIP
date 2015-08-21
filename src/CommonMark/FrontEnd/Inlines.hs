@@ -30,7 +30,7 @@ import CommonMark.Util.Text
 
 -- | Parse an escaped ASCII punctuation character.
 escapedChar :: Parser Inline
-escapedChar = Escaped <$> (char '\\' *> satisfy isAsciiPunctuationChar)
+escapedChar = Escaped <$> (char '\\' *> satisfy isAsciiPunctuation)
 
 
 -- HTML entities
@@ -155,7 +155,7 @@ absoluteURI = do
 emailAddress :: Parser Text
 emailAddress =  T.concat <$> sequence [localPart, string "@", domain]
   where
-    localPart = takeWhile1 (\c -> isAtextChar c || c == '.')
+    localPart = takeWhile1 (\c -> isAtext c || c == '.')
     domain    = T.intercalate "." <$> sepBy1 label (char '.')
     label     = do
         t <- takeWhileLoHi (\c -> isAsciiAlphaNum c || c == '-') 1 63

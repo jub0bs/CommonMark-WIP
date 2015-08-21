@@ -82,7 +82,7 @@ skipNonIndentSpace = skipAsciiSpaces0to3
 
 -- | Skip /zero/ or more whitespace characters.
 whitespace :: Parser ()
-whitespace = discard $ takeWhile isWhitespaceChar
+whitespace = discard $ takeWhile isWhitespace
 
 -- | Skip a CommonMark line ending.
 endOfLine :: Parser ()
@@ -94,7 +94,7 @@ endOfLine = discard $ choice
 
 -- | TODO
 line :: Parser Text
-line = takeTill isEndOfLineChar
+line = takeTill isEndOfLine
 
 -- |
 lines :: Parser [Text]
@@ -140,7 +140,7 @@ atxHeaderPrefix :: Parser Text
 atxHeaderPrefix =
        skipNonIndentSpace
     *> takeWhileLoHi (== '#') 1 6
-   <*  notFollowedBy (not . isWhitespaceChar)
+   <*  notFollowedBy (not . isWhitespace)
    <?> "ATX-header prefix"
 
 -- | Parse the raw contents of an ATX header.

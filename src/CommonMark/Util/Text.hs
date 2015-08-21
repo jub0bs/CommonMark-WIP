@@ -16,7 +16,7 @@ import qualified Data.CharSet.Unicode.Category as CS ( punctuation
                                                      , space
                                                      )
 
-import CommonMark.Util.Char ( isWhitespaceChar, replacementChar )
+import CommonMark.Util.Char ( isWhitespace, replacementChar )
 
 -- | Remove leading and trailing ASCII spaces from a string.
 stripAsciiSpaces :: Text -> Text
@@ -37,8 +37,8 @@ codeSpanWords = go
   where
     go t | T.null word = []
          | otherwise   = word : go rest
-      where (word, rest) = T.break isWhitespaceChar $
-                           T.dropWhile isWhitespaceChar t
+      where (word, rest) = T.break isWhitespace $
+                           T.dropWhile isWhitespace t
 {-# INLINE codeSpanWords #-}
 
 -- | @stripATXSuffix t@ strips an ATX-header suffix (if any) from @t@.
