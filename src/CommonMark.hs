@@ -14,6 +14,7 @@
 --
 module CommonMark
     (
+    -- $example
     -- * Testing
       commonmarkTest
 
@@ -53,3 +54,17 @@ commonmarkTest p s = do
     case A.parseOnly p s of
       Left e  -> putStrLn $ "No parse: " ++ e
       Right x -> putStrLn $ "Parsed: " ++ show x
+
+-- $example
+--
+-- Parsers for CommonMark syntactic elements can be
+-- tested at the command line:
+--
+-- > λ> commonmarkTest hRule "---rule?---"
+-- > No parse: horizontal rule: endOfInput
+--
+-- > λ> commonmarkTest hRule "   ------"
+-- > Parsed: Rule
+--
+-- > λ> commonmarkTest hRule "    ------"
+-- > No parse: horizontal rule: Failed reading: empty
