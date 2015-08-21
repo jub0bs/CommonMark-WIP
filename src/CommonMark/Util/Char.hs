@@ -68,7 +68,7 @@ isPunctuation =
     let charset = asciiPunctuation `CS.union` CS.punctuation
     in \c -> c `CS.member` charset
 
--- | Selects characters from the _atext_ production in the grammar of email
+-- | Selects characters from the /atext/ production in the grammar of email
 -- addresses. See <http://spec.commonmark.org/0.21/#email-address> for more
 -- details.
 isAtext :: Char -> Bool
