@@ -4,10 +4,12 @@ module CommonMark.Util.Text
     -- * Tab and NUL replacement
       replaceNullChars
     , detab
+
     -- * Whitespace
     , stripAsciiSpaces
     , stripAsciiSpacesAndNewlines
     , collapseWhitespace
+
     -- * ATX headers
     , stripATXSuffix
     ) where

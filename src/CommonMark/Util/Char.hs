@@ -4,15 +4,19 @@ module CommonMark.Util.Char
     (
     -- * Special characters
       replacementChar
+
     -- * Basic predicates
     , isAsciiLetter
     , isAsciiAlphaNum
+
     -- * Whitespace
     , isWhitespace
     , isUnicodeWhitespace
-    -- Punctuation
+
+    -- * Punctuation
     , isAsciiPunctuation
     , isPunctuation
+
     -- * Email address
     , isAtext
     ) where
